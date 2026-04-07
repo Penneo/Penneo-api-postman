@@ -1,0 +1,289 @@
+{
+  "info": {
+    "name": "Penneo API",
+    "description": "A collection for validating the Penneo API before integrating. Covers authentication, sending a casefile for signing, polling job status, checking casefile status, and retrieving documents.\n\n**Setup**\nAdd the following variables to this collection before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nThe `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the production URLs when you are ready to go live.\n\n**Flow**\nRun the requests in order — each one automatically saves the values needed by the next.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sandbox.penneo.com",
+      "description": "Base URL for the Penneo API. Change to https://app.penneo.com for production."
+    },
+    {
+      "key": "authUrl",
+      "value": "https://sandbox.oauth.penneo.cloud",
+      "description": "Base URL for the Penneo OAuth server. Change to https://login.penneo.com for production."
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "description": "Your OAuth client ID."
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "description": "Your OAuth client secret."
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "description": "Your Penneo API key."
+    },
+    {
+      "key": "apiSecret",
+      "value": "",
+      "description": "Your Penneo API secret."
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "description": "Auto-set by request 1."
+    },
+    {
+      "key": "jobUuid",
+      "value": "",
+      "description": "Auto-set by request 2."
+    },
+    {
+      "key": "payloadHash",
+      "value": "",
+      "description": "Auto-set by request 2."
+    },
+    {
+      "key": "casefileId",
+      "value": "",
+      "description": "Auto-set by request 3 once the job completes. Can also be set manually."
+    },
+    {
+      "key": "documentId",
+      "value": "",
+      "description": "Auto-set by request 4 to the first document ID. Update manually to download a specific document."
+    },
+    {
+      "key": "documentIds",
+      "value": "",
+      "description": "Auto-set by request 4 as a JSON array of all document IDs in the casefile."
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get Access Token",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const apiSecret = pm.collectionVariables.get('apiSecret');",
+              "const apiKey = pm.collectionVariables.get('apiKey');",
+              "const clientId = pm.collectionVariables.get('clientId');",
+              "const clientSecret = pm.collectionVariables.get('clientSecret');",
+              "",
+              "if (!apiSecret || !apiKey || !clientId || !clientSecret) {",
+              "    throw new Error('Authentication failed: Missing required collection variables (clientId, clientSecret, apiKey, apiSecret).');",
+              "}",
+              "",
+              "// 1. Generate a random nonce",
+              "const nonceWordArray = CryptoJS.lib.WordArray.random(20);",
+              "const base64Nonce = nonceWordArray.toString(CryptoJS.enc.Base64);",
+              "",
+              "// 2. Generate timestamp",
+              "const createdAt = new Date().toISOString();",
+              "",
+              "// 3. Calculate digest: SHA1(nonce + createdAt + apiSecret), Base64-encoded",
+              "const digest = CryptoJS.SHA1(",
+              "    nonceWordArray",
+              "    .concat(CryptoJS.enc.Utf8.parse(createdAt))",
+              "    .concat(CryptoJS.enc.Utf8.parse(apiSecret))",
+              ").toString(CryptoJS.enc.Base64);",
+              "",
+              "pm.collectionVariables.set('base64Nonce', base64Nonce);",
+              "pm.collectionVariables.set('createdAt', createdAt);",
+              "pm.collectionVariables.set('digest', digest);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.access_token) {",
+              "    pm.collectionVariables.set('accessToken', json.access_token);",
+              "    console.log('Access token saved. Expires in ' + json.expires_in + ' seconds.');",
+              "} else {",
+              "    console.error('No access token in response:', JSON.stringify(json));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{authUrl}}/oauth/token",
+          "host": ["{{authUrl}}"],
+          "path": ["oauth", "token"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"grant_type\": \"api_keys\",\n  \"key\": \"{{apiKey}}\",\n  \"nonce\": \"{{base64Nonce}}\",\n  \"created_at\": \"{{createdAt}}\",\n  \"digest\": \"{{digest}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Authenticates using the API Keys Grant flow. The pre-request script automatically calculates the nonce, timestamp, and SHA1 digest — no manual setup needed beyond setting your collection variables.\n\nThe access token is valid for 10 minutes and is automatically saved to `accessToken` for use in subsequent requests."
+      }
+    },
+    {
+      "name": "2. Send Casefile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.jobs && json.jobs.length > 0) {",
+              "    pm.collectionVariables.set('jobUuid', json.jobs[0].uuid);",
+              "    pm.collectionVariables.set('payloadHash', json.jobs[0].payloadHash);",
+              "    console.log('Job UUID saved: ' + json.jobs[0].uuid);",
+              "} else {",
+              "    console.error('Unexpected response:', JSON.stringify(json));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-Auth-Token", "value": "{{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/send/api/v1/casefiles/20251022/create",
+          "host": ["{{baseUrl}}"],
+          "path": ["send", "api", "v1", "casefiles", "20251022", "create"]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "data",
+              "value": "{\"caseFile\":{\"title\":\"Contract Agreement\",\"signers\":[{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"role\":\"signer\"}],\"documents\":[{\"title\":\"Contract Document\",\"name\":\"contract.pdf\"}]}}",
+              "description": "JSON string describing the casefile. The document name must exactly match the filename of the uploaded file.",
+              "type": "text"
+            },
+            {
+              "key": "files",
+              "description": "Select your PDF file here. The filename must match the 'name' field in the data JSON above.",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "description": "Creates a new casefile with one or more documents and signers.\n\nThe request uses `multipart/form-data` with two parts:\n- `data`: a JSON string describing the casefile (title, signers, documents)\n- `files`: the PDF file(s) to be signed\n\n**Important:** The `name` field in the documents array must exactly match the filename of the uploaded PDF.\n\nThe casefile is created asynchronously. Use the returned `uuid` and `payloadHash` (auto-saved) to poll for completion in request 3.\n\nAuthentication uses `X-Auth-Token` (not `Authorization: Bearer`) — this is specific to the send endpoint."
+      }
+    },
+    {
+      "name": "3. Poll Job Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "console.log('Job status: ' + json.jobStatus);",
+              "",
+              "if (json.jobStatus === 'completed' && json.result) {",
+              "    const casefileId = json.result.data.caseFile.id;",
+              "    pm.collectionVariables.set('casefileId', casefileId);",
+              "    console.log('Casefile ID saved: ' + casefileId);",
+              "} else if (json.jobStatus === 'failed') {",
+              "    console.error('Job failed: ' + json.errorMessage);",
+              "} else {",
+              "    console.log('Job not yet complete — keep polling.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/send/api/v1/queue/public/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["send", "api", "v1", "queue", "public", "status"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uuid\": \"{{jobUuid}}\",\n  \"payloadHash\": \"{{payloadHash}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Polls the status of the casefile creation job submitted in request 2.\n\nPossible statuses:\n- `pending` — job is queued, not yet started\n- `processing` — job is being processed\n- `completed` — casefile created successfully\n- `failed` — something went wrong (see `errorMessage`)\n- `aborted_duplicated` — a duplicate submission was detected\n\nThis endpoint does not require authentication — the `uuid` and `payloadHash` together serve as verification.\n\nRate limited to 20 requests per minute. Re-run this request until the status is `completed`."
+      }
+    },
+    {
+      "name": "4. Check Casefile Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.documents && json.documents.length > 0) {",
+              "    const ids = json.documents.map(d => d.id);",
+              "    pm.collectionVariables.set('documentIds', JSON.stringify(ids));",
+              "    pm.collectionVariables.set('documentId', ids[0]);",
+              "    if (ids.length === 1) {",
+              "        console.log('Document ID saved: ' + ids[0]);",
+              "    } else {",
+              "        console.log('Multiple documents found (' + ids.length + '). All IDs saved to documentIds: ' + JSON.stringify(ids));",
+              "        console.log('documentId is set to the first: ' + ids[0] + '. Update it manually for other documents, or use the Collection Runner to iterate.');",
+              "    }",
+              "} else {",
+              "    console.log('No documents found in casefile response.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/casefiles/{{casefileId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "casefiles", "{{casefileId}}"]
+        },
+        "description": "Retrieves the full details of a casefile by ID, including its status and the status of each signer.\n\nSigner statuses:\n- `0` Request sent\n- `1` Request opened\n- `2` Opened\n- `3` Signed\n- `4` Rejected\n\nCasefile statuses:\n- `0` Draft\n- `1` Pending\n- `2` Rejected\n- `3` Deleted\n- `5` Completed\n- `7` Expired\n\nThe first document ID is automatically saved to `documentId` for use in request 5."
+      }
+    },
+    {
+      "name": "5. Get Document",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Accept", "value": "application/pdf" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v3/documents/{{documentId}}/content",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v3", "documents", "{{documentId}}", "content"]
+        },
+        "description": "Downloads a document as a PDF using the `documentId` variable set in request 4.\n\nSet the response type to 'Send and Download' in Postman to save the file locally.\n\n**Multiple documents:** If the casefile has more than one document, all IDs are available in the `documentIds` variable (JSON array). To download each one, either update `documentId` manually and re-run, or use the Postman Collection Runner with the following pre-request script to iterate:\n\n```js\nconst ids = JSON.parse(pm.collectionVariables.get('documentIds'));\nconst index = pm.info.iteration;\npm.collectionVariables.set('documentId', ids[index]);\n```\n\nTo download a JSON representation instead of a PDF, change the `Accept` header to `application/json`."
+      }
+    }
+  ]
+}
