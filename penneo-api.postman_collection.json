@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Penneo API",
-    "description": "A collection for validating the Penneo API before integrating. Covers authentication, sending a casefile for signing, polling job status, checking casefile status, and retrieving documents.\n\n**Setup**\nAdd the following variables to this collection before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nThe `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the production URLs when you are ready to go live.\n\n**Flow**\nRun the requests in order — each one automatically saves the values needed by the next.",
+    "description": "A collection for validating the Penneo API before integrating. Covers authentication, sending a casefile for signing, polling job status, checking casefile status, and retrieving documents.\n\n**Setup**\nAdd the following variables to this collection before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nThe `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the production URLs when you are ready to go live.\n\n**Flow**\nRun the requests in order — each one automatically saves the values needed by the next. Every request includes assertions that validate the response, so you can use the Collection Runner to verify the full flow end-to-end.\n\n**Token expiry**\nThe access token is valid for 10 minutes. If later requests fail with 401, re-run request 1 to get a fresh token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,6 +39,21 @@
       "key": "accessToken",
       "value": "",
       "description": "Auto-set by request 1."
+    },
+    {
+      "key": "base64Nonce",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
+    },
+    {
+      "key": "createdAt",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
+    },
+    {
+      "key": "digest",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
     },
     {
       "key": "jobUuid",
@@ -80,18 +95,20 @@
               "const clientId = pm.collectionVariables.get('clientId');",
               "const clientSecret = pm.collectionVariables.get('clientSecret');",
               "",
-              "if (!apiSecret || !apiKey || !clientId || !clientSecret) {",
-              "    throw new Error('Authentication failed: Missing required collection variables (clientId, clientSecret, apiKey, apiSecret).');",
+              "const missing = [];",
+              "if (!clientId) missing.push('clientId');",
+              "if (!clientSecret) missing.push('clientSecret');",
+              "if (!apiKey) missing.push('apiKey');",
+              "if (!apiSecret) missing.push('apiSecret');",
+              "if (missing.length > 0) {",
+              "    throw new Error('Missing required collection variables: ' + missing.join(', ') + '. Set them in the collection Variables tab.');",
               "}",
               "",
-              "// 1. Generate a random nonce",
               "const nonceWordArray = CryptoJS.lib.WordArray.random(20);",
               "const base64Nonce = nonceWordArray.toString(CryptoJS.enc.Base64);",
-              "",
-              "// 2. Generate timestamp",
               "const createdAt = new Date().toISOString();",
               "",
-              "// 3. Calculate digest: SHA1(nonce + createdAt + apiSecret), Base64-encoded",
+              "// digest = Base64(SHA1(nonce + createdAt + apiSecret))",
               "const digest = CryptoJS.SHA1(",
               "    nonceWordArray",
               "    .concat(CryptoJS.enc.Utf8.parse(createdAt))",
@@ -110,11 +127,19 @@
             "type": "text/javascript",
             "exec": [
               "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    pm.expect(json).to.have.property('access_token').that.is.a('string').and.is.not.empty;",
+              "    pm.expect(json).to.have.property('expires_in').that.is.a('number');",
+              "});",
+              "",
               "if (json.access_token) {",
               "    pm.collectionVariables.set('accessToken', json.access_token);",
               "    console.log('Access token saved. Expires in ' + json.expires_in + ' seconds.');",
-              "} else {",
-              "    console.error('No access token in response:', JSON.stringify(json));",
               "}"
             ]
           }
@@ -142,17 +167,38 @@
       "name": "2. Send Casefile",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first.');",
+              "}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains at least one job', function () {",
+              "    pm.expect(json).to.have.property('jobs').that.is.an('array').and.is.not.empty;",
+              "    pm.expect(json.jobs[0]).to.have.property('uuid').that.is.a('string').and.is.not.empty;",
+              "    pm.expect(json.jobs[0]).to.have.property('payloadHash').that.is.a('string').and.is.not.empty;",
+              "});",
+              "",
               "if (json.jobs && json.jobs.length > 0) {",
               "    pm.collectionVariables.set('jobUuid', json.jobs[0].uuid);",
               "    pm.collectionVariables.set('payloadHash', json.jobs[0].payloadHash);",
               "    console.log('Job UUID saved: ' + json.jobs[0].uuid);",
-              "} else {",
-              "    console.error('Unexpected response:', JSON.stringify(json));",
               "}"
             ]
           }
@@ -173,8 +219,8 @@
           "formdata": [
             {
               "key": "data",
-              "value": "{\"caseFile\":{\"title\":\"Contract Agreement\",\"signers\":[{\"name\":\"John Doe\",\"email\":\"john@example.com\",\"role\":\"signer\"}],\"documents\":[{\"title\":\"Contract Document\",\"name\":\"contract.pdf\"}]}}",
-              "description": "JSON string describing the casefile. The document name must exactly match the filename of the uploaded file.",
+              "value": "{\n  \"caseFile\": {\n    \"title\": \"Contract Agreement\",\n    \"signers\": [\n      {\n        \"name\": \"John Doe\",\n        \"email\": \"john@example.com\",\n        \"role\": \"signer\"\n      }\n    ],\n    \"documents\": [\n      {\n        \"title\": \"Contract Document\",\n        \"name\": \"contract.pdf\"\n      }\n    ]\n  }\n}",
+              "description": "JSON string describing the casefile. The document 'name' must exactly match the filename of the uploaded file.",
               "type": "text"
             },
             {
@@ -192,21 +238,54 @@
       "name": "3. Poll Job Status",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const jobUuid = pm.collectionVariables.get('jobUuid');",
+              "const payloadHash = pm.collectionVariables.get('payloadHash');",
+              "",
+              "if (!jobUuid || !payloadHash) {",
+              "    throw new Error('jobUuid or payloadHash is not set. Run request 2 first.');",
+              "}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains jobStatus', function () {",
+              "    pm.expect(json).to.have.property('jobStatus').that.is.a('string');",
+              "    pm.expect(['pending', 'processing', 'completed', 'failed', 'aborted_duplicated']).to.include(json.jobStatus);",
+              "});",
+              "",
               "console.log('Job status: ' + json.jobStatus);",
               "",
               "if (json.jobStatus === 'completed' && json.result) {",
+              "    pm.test('Completed job contains caseFile ID', function () {",
+              "        pm.expect(json.result).to.have.nested.property('data.caseFile.id');",
+              "    });",
               "    const casefileId = json.result.data.caseFile.id;",
               "    pm.collectionVariables.set('casefileId', casefileId);",
               "    console.log('Casefile ID saved: ' + casefileId);",
               "} else if (json.jobStatus === 'failed') {",
-              "    console.error('Job failed: ' + json.errorMessage);",
+              "    pm.test('Job should not fail', function () {",
+              "        pm.expect.fail('Job failed: ' + (json.errorMessage || 'no error message'));",
+              "    });",
+              "} else if (json.jobStatus === 'aborted_duplicated') {",
+              "    pm.test('Job should not be a duplicate', function () {",
+              "        pm.expect.fail('Job was aborted as a duplicate submission.');",
+              "    });",
               "} else {",
-              "    console.log('Job not yet complete — keep polling.');",
+              "    console.log('Job not yet complete (' + json.jobStatus + '). Re-run this request until it completes.');",
               "}"
             ]
           }
@@ -234,11 +313,38 @@
       "name": "4. Check Casefile Status",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const casefileId = pm.collectionVariables.get('casefileId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!casefileId) {",
+              "    throw new Error('casefileId is not set. Run request 3 until the job status is completed, or set it manually.');",
+              "}"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains casefile data', function () {",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.expect(json).to.have.property('status');",
+              "    pm.expect(json).to.have.property('documents').that.is.an('array');",
+              "});",
               "if (json.documents && json.documents.length > 0) {",
               "    const ids = json.documents.map(d => d.id);",
               "    pm.collectionVariables.set('documentIds', JSON.stringify(ids));",
@@ -250,7 +356,7 @@
               "        console.log('documentId is set to the first: ' + ids[0] + '. Update it manually for other documents, or use the Collection Runner to iterate.');",
               "    }",
               "} else {",
-              "    console.log('No documents found in casefile response.');",
+              "    console.warn('No documents found in casefile response.');",
               "}"
             ]
           }
@@ -271,6 +377,42 @@
     },
     {
       "name": "5. Get Document",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const documentId = pm.collectionVariables.get('documentId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!documentId) {",
+              "    throw new Error('documentId is not set. Run request 4 first, or set it manually.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is a PDF', function () {",
+              "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+              "});",
+              "",
+              "console.log('Document downloaded. Size: ' + pm.response.responseSize + ' bytes.');"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
         "header": [
