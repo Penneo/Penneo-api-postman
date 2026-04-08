@@ -1,0 +1,498 @@
+{
+  "info": {
+    "name": "Penneo Webhooks",
+    "description": "A collection for testing Penneo's webhook subscription API. Use this to create, inspect, update, and delete webhook subscriptions — and to fire test events so you can see exactly what payload your endpoint receives before going live.\n\n**Setup**\nAdd the following variables to this collection before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n- `webhookEndpoint` — the URL Penneo should POST events to (e.g. a [webhook.site](https://webhook.site) URL for testing)\n\nThe `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the production URLs when you are ready to go live.\n\n**Recommended flow**\n1. Run request 1 to get an access token\n2. Run request 2 to create a subscription — `subscriptionId` is saved automatically\n3. Run request 3 to inspect the new subscription\n4. Run request 4 to see all subscriptions on your account\n5. Run request 5 to fire a test event to your endpoint\n6. Run request 6 to update the subscription (e.g. change event types or toggle active)\n7. Run request 7 to delete the subscription when done\n\n**Token expiry**\nThe access token is valid for 10 minutes. If a request fails with 401, re-run request 1 to get a fresh token.\n\n**Verifying payloads**\nEach subscription has a `secret` field in the response. Penneo signs outgoing webhook payloads with this secret so you can verify they are genuine.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sandbox.penneo.com",
+      "description": "Base URL for the Penneo API. Change to https://app.penneo.com for production."
+    },
+    {
+      "key": "authUrl",
+      "value": "https://sandbox.oauth.penneo.cloud",
+      "description": "Base URL for the Penneo OAuth server. Change to https://login.penneo.com for production."
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "description": "Your OAuth client ID."
+    },
+    {
+      "key": "clientSecret",
+      "value": "",
+      "description": "Your OAuth client secret."
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "description": "Your Penneo API key."
+    },
+    {
+      "key": "apiSecret",
+      "value": "",
+      "description": "Your Penneo API secret."
+    },
+    {
+      "key": "webhookEndpoint",
+      "value": "",
+      "description": "The URL Penneo will POST webhook events to. Use https://webhook.site for a free disposable endpoint during testing."
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "description": "Auto-set by request 1."
+    },
+    {
+      "key": "base64Nonce",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
+    },
+    {
+      "key": "createdAt",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
+    },
+    {
+      "key": "digest",
+      "value": "",
+      "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "description": "Auto-set by request 2 (Create Subscription). Can also be set manually."
+    },
+    {
+      "key": "subscriptionSecret",
+      "value": "",
+      "description": "Auto-set by request 2. Use this to verify incoming webhook payloads originate from Penneo."
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get Access Token",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const apiSecret = pm.collectionVariables.get('apiSecret');",
+              "const apiKey = pm.collectionVariables.get('apiKey');",
+              "const clientId = pm.collectionVariables.get('clientId');",
+              "const clientSecret = pm.collectionVariables.get('clientSecret');",
+              "",
+              "const missing = [];",
+              "if (!clientId) missing.push('clientId');",
+              "if (!clientSecret) missing.push('clientSecret');",
+              "if (!apiKey) missing.push('apiKey');",
+              "if (!apiSecret) missing.push('apiSecret');",
+              "if (missing.length > 0) {",
+              "    throw new Error('Missing required collection variables: ' + missing.join(', ') + '. Set them in the collection Variables tab.');",
+              "}",
+              "",
+              "const nonceWordArray = CryptoJS.lib.WordArray.random(20);",
+              "const base64Nonce = nonceWordArray.toString(CryptoJS.enc.Base64);",
+              "const createdAt = new Date().toISOString();",
+              "",
+              "// digest = Base64(SHA1(nonce + createdAt + apiSecret))",
+              "const digest = CryptoJS.SHA1(",
+              "    nonceWordArray",
+              "    .concat(CryptoJS.enc.Utf8.parse(createdAt))",
+              "    .concat(CryptoJS.enc.Utf8.parse(apiSecret))",
+              ").toString(CryptoJS.enc.Base64);",
+              "",
+              "pm.collectionVariables.set('base64Nonce', base64Nonce);",
+              "pm.collectionVariables.set('createdAt', createdAt);",
+              "pm.collectionVariables.set('digest', digest);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains access_token', function () {",
+              "    pm.expect(json).to.have.property('access_token').that.is.a('string').and.is.not.empty;",
+              "    pm.expect(json).to.have.property('expires_in').that.is.a('number');",
+              "});",
+              "",
+              "if (json.access_token) {",
+              "    pm.collectionVariables.set('accessToken', json.access_token);",
+              "    console.log('Access token saved. Expires in ' + json.expires_in + ' seconds.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{authUrl}}/oauth/token",
+          "host": ["{{authUrl}}"],
+          "path": ["oauth", "token"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"grant_type\": \"api_keys\",\n  \"key\": \"{{apiKey}}\",\n  \"nonce\": \"{{base64Nonce}}\",\n  \"created_at\": \"{{createdAt}}\",\n  \"digest\": \"{{digest}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Authenticates using the API Keys Grant flow. The pre-request script automatically calculates the nonce, timestamp, and SHA1 digest — no manual setup needed beyond setting your collection variables.\n\nThe access token is valid for 10 minutes and is automatically saved to `accessToken` for use in subsequent requests."
+      }
+    },
+    {
+      "name": "2. Create Subscription",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const endpoint = pm.collectionVariables.get('webhookEndpoint');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first.');",
+              "}",
+              "if (!endpoint) {",
+              "    throw new Error('webhookEndpoint is not set. Add your target URL to the collection Variables tab. Use https://webhook.site for a free disposable endpoint.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response contains subscription ID', function () {",
+              "    pm.expect(json).to.have.property('id').that.is.a('string').and.is.not.empty;",
+              "});",
+              "",
+              "pm.test('Response contains secret for payload verification', function () {",
+              "    pm.expect(json).to.have.property('secret').that.is.a('string').and.is.not.empty;",
+              "});",
+              "",
+              "pm.test('Subscription is active', function () {",
+              "    pm.expect(json.isActive).to.be.true;",
+              "});",
+              "",
+              "if (json.id) {",
+              "    pm.collectionVariables.set('subscriptionId', json.id);",
+              "    console.log('Subscription ID saved: ' + json.id);",
+              "}",
+              "if (json.secret) {",
+              "    pm.collectionVariables.set('subscriptionSecret', json.secret);",
+              "    console.log('Subscription secret saved. Store this securely — use it to verify incoming payloads.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"endpoint\": \"{{webhookEndpoint}}\",\n  \"eventTypes\": [\n    \"sign.casefile.completed\",\n    \"sign.casefile.rejected\",\n    \"sign.casefile.expired\",\n    \"sign.signer.signed\",\n    \"sign.signer.rejected\",\n    \"webhook.subscription.test\"\n  ],\n  \"isActive\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Creates a new webhook subscription. Penneo will POST a JSON payload to your `endpoint` URL whenever any of the subscribed event types occur.\n\nThe subscription ID and secret are automatically saved to `subscriptionId` and `subscriptionSecret`.\n\n**Available event types:**\n- `sign.casefile.completed` — all signers have signed\n- `sign.casefile.rejected` — a signer rejected the casefile\n- `sign.casefile.expired` — the casefile reached its deadline unsigned\n- `sign.casefile.failed` — an internal processing error occurred\n- `sign.signer.requestSent` — signing request email dispatched\n- `sign.signer.requestOpened` — signing request email opened\n- `sign.signer.opened` — signing page opened\n- `sign.signer.signed` — individual signer signed\n- `sign.signer.rejected` — individual signer rejected\n- `sign.signer.reminderSent` — reminder email dispatched\n- `sign.signer.undeliverable` — email could not be delivered\n- `sign.signer.finalized` — signer flow fully completed\n- `webhook.subscription.test` — test event (triggered by request 5)\n\n**Limits:** Max 100 subscriptions per user. Creating a second subscription with the same endpoint URL on the same account returns `409 Conflict`.\n\n**Payload verification:** The response includes a `secret` UUID. Penneo signs outgoing payloads using this secret — validate it on your server to confirm the request is genuine."
+      }
+    },
+    {
+      "name": "3. Get Subscription",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const subscriptionId = pm.collectionVariables.get('subscriptionId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!subscriptionId) {",
+              "    throw new Error('subscriptionId is not set. Run request 2 first, or set it manually in the collection Variables tab.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains subscription fields', function () {",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.expect(json).to.have.property('endpoint');",
+              "    pm.expect(json).to.have.property('eventTypes').that.is.an('array');",
+              "    pm.expect(json).to.have.property('isActive');",
+              "});",
+              "",
+              "console.log('Subscription endpoint: ' + json.endpoint);",
+              "console.log('Active: ' + json.isActive);",
+              "console.log('Event types: ' + JSON.stringify(json.eventTypes));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions/{{subscriptionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions", "{{subscriptionId}}"]
+        },
+        "description": "Fetches the details of a single webhook subscription by its ID.\n\nUses the `subscriptionId` variable saved by request 2. You can also set it manually in the collection Variables tab if you already have a subscription ID."
+      }
+    },
+    {
+      "name": "4. List Subscriptions",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response contains items array', function () {",
+              "    pm.expect(json).to.have.property('items').that.is.an('array');",
+              "});",
+              "",
+              "console.log('Total subscriptions on account: ' + json.items.length);",
+              "json.items.forEach(function(sub, i) {",
+              "    console.log('[' + i + '] id=' + sub.id + ' endpoint=' + sub.endpoint + ' active=' + sub.isActive);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions"]
+        },
+        "description": "Returns all webhook subscriptions registered on your account.\n\nThe console log will print a summary of each subscription (ID, endpoint, active status). Useful for auditing what is currently configured before making changes."
+      }
+    },
+    {
+      "name": "5. Test Subscription",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              "",
+              "console.log('Test event dispatched. Check your webhook endpoint for an incoming payload with eventType: webhook.subscription.test.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions/test",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions", "test"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Fires a test event to all active subscriptions on your account that include `webhook.subscription.test` in their `eventTypes`.\n\nAfter running this request, open your webhook endpoint (e.g. your webhook.site URL) to see the exact payload structure Penneo delivers. This lets you verify your endpoint is reachable and inspect the payload format before any real signing activity occurs.\n\n**Tip:** Make sure your subscription (created in request 2) includes `webhook.subscription.test` in its event types. The default body in request 2 already includes it.\n\nReturns `204 No Content` on success — no response body."
+      }
+    },
+    {
+      "name": "6. Update Subscription",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const subscriptionId = pm.collectionVariables.get('subscriptionId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!subscriptionId) {",
+              "    throw new Error('subscriptionId is not set. Run request 2 first, or set it manually in the collection Variables tab.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200 or 204', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    console.log('Subscription updated. Active: ' + json.isActive);",
+              "    console.log('Event types: ' + JSON.stringify(json.eventTypes));",
+              "} else {",
+              "    console.log('Subscription updated (204 No Content).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions/{{subscriptionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions", "{{subscriptionId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"endpoint\": \"{{webhookEndpoint}}\",\n  \"eventTypes\": [\n    \"sign.casefile.completed\",\n    \"sign.casefile.rejected\",\n    \"sign.casefile.expired\",\n    \"sign.casefile.failed\",\n    \"sign.signer.signed\",\n    \"sign.signer.rejected\",\n    \"sign.signer.reminderSent\",\n    \"sign.signer.undeliverable\",\n    \"webhook.subscription.test\"\n  ],\n  \"isActive\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "description": "Replaces the configuration of an existing subscription. The full body is required — any fields omitted will be cleared.\n\nCommon use cases:\n- Add or remove event types\n- Temporarily pause delivery by setting `isActive` to `false`\n- Resume delivery by setting `isActive` back to `true`\n\nThe default body here is a superset of the event types from request 2. Trim it down to only the events your integration actually needs."
+      }
+    },
+    {
+      "name": "7. Delete Subscription",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const subscriptionId = pm.collectionVariables.get('subscriptionId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!subscriptionId) {",
+              "    throw new Error('subscriptionId is not set. Run request 2 first, or set it manually in the collection Variables tab.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              "",
+              "console.log('Subscription ' + pm.collectionVariables.get('subscriptionId') + ' deleted.');",
+              "pm.collectionVariables.set('subscriptionId', '');",
+              "pm.collectionVariables.set('subscriptionSecret', '');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/webhook/api/v1/subscriptions/{{subscriptionId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["webhook", "api", "v1", "subscriptions", "{{subscriptionId}}"]
+        },
+        "description": "Permanently deletes a webhook subscription. Penneo will stop delivering events to the endpoint immediately.\n\nAfter a successful deletion the `subscriptionId` and `subscriptionSecret` variables are cleared automatically.\n\nReturns `204 No Content` on success — no response body."
+      }
+    }
+  ]
+}
