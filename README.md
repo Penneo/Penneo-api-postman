@@ -7,7 +7,7 @@ This repository contains two Postman collections for working with the Penneo API
 ## Collections
 
 ### 1. Penneo API
-For validating the core Penneo signing flow before integrating. Covers authentication, sending a document for signing, polling for completion, checking casefile status, and retrieving the signed document.
+For validating the core Penneo signing flow before integrating. Covers authentication, sending a document for signing, polling for completion, checking casefile status, retrieving the signed document, and deleting a casefile.
 
 **File:** `penneo-api.postman_collection.json`
 
@@ -82,6 +82,7 @@ Run the requests in order — each one automatically saves the values needed by 
 | 3 | Poll Job Status | Polls until the casefile is created (re-run until completed) |
 | 4 | Check Casefile Status | Retrieves casefile details and signer status |
 | 5 | Get Document | Downloads the document as a PDF |
+| 6 | Delete Casefile | Permanently deletes the casefile |
 
 ### Penneo Webhooks
 

@@ -426,6 +426,53 @@
         },
         "description": "Downloads a document as a PDF using the `documentId` variable set in request 4.\n\nSet the response type to 'Send and Download' in Postman to save the file locally.\n\n**Multiple documents:** If the casefile has more than one document, all IDs are available in the `documentIds` variable (JSON array). To download each one, either update `documentId` manually and re-run, or use the Postman Collection Runner with the following pre-request script to iterate:\n\n```js\nconst ids = JSON.parse(pm.collectionVariables.get('documentIds'));\nconst index = pm.info.iteration;\npm.collectionVariables.set('documentId', ids[index]);\n```\n\nTo download a JSON representation instead of a PDF, change the `Accept` header to `application/json`."
       }
+    },
+    {
+      "name": "6. Delete Casefile",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.collectionVariables.get('accessToken');",
+              "const casefileId = pm.collectionVariables.get('casefileId');",
+              "",
+              "if (!token) {",
+              "    throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).');",
+              "}",
+              "if (!casefileId) {",
+              "    throw new Error('casefileId is not set. Run request 3 until the job status is completed, or set it manually.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "console.log('Casefile ' + pm.collectionVariables.get('casefileId') + ' deleted.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/casefiles/{{casefileId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "casefiles", "{{casefileId}}"]
+        },
+        "description": "Permanently deletes a casefile by ID.\n\n**Note:** Only casefiles in draft or pending state can be deleted. A casefile that has been completed or rejected cannot be deleted.\n\nThis action is irreversible."
+      }
     }
   ]
 }
