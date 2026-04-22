@@ -471,7 +471,7 @@
           "host": ["{{baseUrl}}"],
           "path": ["api", "v1", "casefiles", "{{casefileId}}"]
         },
-        "description": "Permanently deletes a casefile by ID.\n\n**Note:** Only casefiles in draft or pending state can be deleted. A casefile that has been completed or rejected cannot be deleted.\n\nThis action is irreversible."
+        "description": "Permanently deletes a casefile by ID.\n\nThis action is irreversible."
       }
     }
   ]
