@@ -402,6 +402,9 @@
           ]
         },
         {
+          "name": "Prefilled Form Request",
+          "item": [
+        {
           "name": "Create Prefilled Form Request",
           "event": [
             {
@@ -469,6 +472,8 @@
             },
             "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\nThe answer keys (`full_name`, `email_address`) match the `name` properties set on the fields when the form was created. Update them if you use different field names.\n\nThe `requestUrl` is automatically saved. Share it with the end-user to let them access the pre-populated form."
           }
+        }
+          ]
         },
         {
           "name": "Form Examples",
@@ -702,6 +707,9 @@
         },
         {
           "name": "Deactivate Form",
+          "item": [
+        {
+          "name": "Deactivate Form",
           "event": [
             {
               "listen": "prerequest",
@@ -743,6 +751,8 @@
             },
             "description": "Archives the form, changing its status from ACTIVE to ARCHIVED. The public URL becomes inactive and no new submissions are accepted.\n\nExisting submissions are preserved and can still be retrieved via the Data Retrieval steps."
           }
+        }
+          ]
         }
       ]
     },
