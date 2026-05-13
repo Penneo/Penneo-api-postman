@@ -43,7 +43,7 @@ The access token is valid for **10 minutes** and is saved to `accessToken` autom
 
 Run these in order to take a form through its full lifecycle.
 
-**`Create Form`** `POST /v1/forms`
+**`Create Simple Form`** `POST /v1/forms`
 
 Creates a new form in DRAFT status. The form is not publicly accessible until it is published. The `externalId` is saved automatically and used by all subsequent requests in this folder.
 
@@ -104,6 +104,46 @@ Takes the form offline by changing its status from ACTIVE to ARCHIVED. The publi
 
 ---
 
+### Form Examples
+
+Ready-to-run form examples demonstrating specific Collect API features. Each request creates a form in DRAFT status — run **Publish Form** from the Form Management folder to take it live.
+
+**`Conditional Fields and Sections`** `POST /v1/forms`
+
+Creates a form demonstrating two types of conditional visibility:
+- A **conditional section** — "Business Details" (company name, registration number) is hidden until the user selects "Business" as their customer type.
+- A **conditional field** — "Agreement ID" is hidden until the user answers "Yes" to an existing agreement question, and becomes required once visible.
+
+Conditions use an `EQUALS` rule referencing the `name` of an earlier field.
+
+> Saves: `externalId`
+
+---
+
+**`Set Casefile Name`** `POST /v1/forms`
+
+Creates a form with a `caseFileTitleTemplate` that controls how the resulting casefile is named in Penneo Sign. The template uses merge fields resolved at submission time: `{{formName}}`, `{{primarySigner.name}}`, and `{{primarySigner.email}}`.
+
+> Saves: `externalId`
+
+---
+
+**`Merge Fields in HTML Content`** `POST /v1/forms`
+
+Creates a loan application form demonstrating merge fields in HTML content. Answers collected in earlier sections are injected into a final summary section using `{{fieldName}}` syntax, so the applicant can review their input before signing. The merge field key matches the `name` property of the source field.
+
+> Saves: `externalId`
+
+---
+
+**`Map Fields to Signer`** `POST /v1/forms`
+
+Creates a form demonstrating the `mapTo` property. Fields mapped to `primarySigner.name` and `primarySigner.email` automatically identify the form filler as the primary signer — no separate signer configuration required. The field mapped to any `*.email` property must be of type `EMAIL`.
+
+> Saves: `externalId`
+
+---
+
 ## Data Retrieval
 
 Run these in order once end-users have submitted and signed the form.
@@ -114,7 +154,7 @@ Returns all completed submissions for the given form, ordered by submission ID a
 
 If there are multiple submissions, update `submissionId` and `casefileId` manually in the Variables tab to work with a specific one.
 
-Supports pagination via `limit` (default 1000, max 1000) and `offset` query parameters.
+Supports pagination via `limit` (default 10, max 1000) and `offset` query parameters.
 
 > Requires: `externalId`  
 > Saves: `submissionId`, `casefileId`
