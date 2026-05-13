@@ -1,6 +1,6 @@
 # Penneo — Postman Collections
 
-This repository contains two Postman collections for working with the Penneo API.
+This repository contains three Postman collections for working with the Penneo API.
 
 ---
 
@@ -11,7 +11,12 @@ For validating the core Penneo signing flow before integrating. Covers authentic
 
 **File:** `penneo-api.postman_collection.json`
 
-### 2. Penneo Webhooks
+### 2. Penneo Collect API
+For creating and managing Penneo Collect forms, generating prefilled form links, and retrieving submission data and signed documents. Covers authentication, form lifecycle (create, publish, update, deactivate), prefilled form requests, and data retrieval.
+
+**File:** `penneo-collect-api.postman_collection.json`
+
+### 3. Penneo Webhooks
 For testing Penneo's webhook subscription API. Use this to create, inspect, update, and delete webhook subscriptions — and to fire test events to your endpoint so you can see exactly what payload you will receive before going live.
 
 **File:** `penneo-webhooks.postman_collection.json`
@@ -25,6 +30,11 @@ In Postman, go to **Import → Link** and paste the raw URL for the collection y
 **Penneo API**
 ```
 https://raw.githubusercontent.com/Penneo/Penneo-api-postman/main/penneo-api.postman_collection.json
+```
+
+**Penneo Collect API**
+```
+https://raw.githubusercontent.com/Penneo/Penneo-api-postman/main/penneo-collect-api.postman_collection.json
 ```
 
 **Penneo Webhooks**
@@ -45,7 +55,7 @@ To set up an OAuth client and generate API keys, see the [Penneo authentication 
 
 ## Setup
 
-Both collections use the same authentication variables. After importing, open the collection and go to the **Variables** tab. Fill in the following:
+All three collections use the same authentication variables. After importing, open the collection and go to the **Variables** tab. Fill in the following:
 
 | Variable | Description |
 |----------|-------------|
