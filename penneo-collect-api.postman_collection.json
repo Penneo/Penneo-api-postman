@@ -152,19 +152,34 @@
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Content-Type", "value": "application/json" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
         ],
         "url": {
           "raw": "{{authUrl}}/oauth/token",
-          "host": ["{{authUrl}}"],
-          "path": ["oauth", "token"]
+          "host": [
+            "{{authUrl}}"
+          ],
+          "path": [
+            "oauth",
+            "token"
+          ]
         },
         "body": {
           "mode": "raw",
           "raw": "{\n  \"client_id\": \"{{clientId}}\",\n  \"client_secret\": \"{{clientSecret}}\",\n  \"grant_type\": \"api_keys\",\n  \"key\": \"{{apiKey}}\",\n  \"nonce\": \"{{base64Nonce}}\",\n  \"created_at\": \"{{createdAt}}\",\n  \"digest\": \"{{digest}}\"\n}",
-          "options": { "raw": { "language": "json" } }
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "description": "Authenticates using the API Keys Grant flow. The pre-request script automatically calculates the nonce, timestamp, and SHA1 digest.\n\nThe access token is valid for 10 minutes and is saved to `accessToken` for all subsequent requests."
+        "description": "Authenticates using the API Keys Grant flow. The pre-request script automatically calculates the nonce, timestamp, and SHA1 digest.\n\nThe access token is valid for 10 minutes and is saved to `accessToken` for all subsequent requests.",
+        "auth": {
+          "type": "noauth"
+        }
       }
     },
     {
@@ -176,205 +191,216 @@
           "item": [
             {
               "name": "Create Simple Form",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }"
-                ]
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "pm.test('Response contains externalId', function () {",
+                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "});",
+                      "",
+                      "if (json.externalId) {",
+                      "    pm.collectionVariables.set('externalId', json.externalId);",
+                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Customer Onboarding Form\",\n  \"language\": \"EN\",\n  \"description\": \"A simple form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/v1/forms",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
+                },
+                "description": "Creates a new form in DRAFT status. The `externalId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published."
               }
             },
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const json = pm.response.json();",
-                  "",
-                  "pm.test('Status code is 201', function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test('Response contains externalId', function () {",
-                  "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
-                  "});",
-                  "",
-                  "if (json.externalId) {",
-                  "    pm.collectionVariables.set('externalId', json.externalId);",
-                  "    console.log('Form externalId saved: ' + json.externalId);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Customer Onboarding Form\",\n  \"language\": \"EN\",\n  \"description\": \"A simple form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"description\": null,\n      \"attr\": null,\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"caseFileTitleTemplate\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/v1/forms",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms"]
-            },
-            "description": "Creates a new form in DRAFT status. The `externalId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published."
-          }
-        },
-        {
-          "name": "Publish Form",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
-                ]
+              "name": "Publish Form",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const externalId = pm.collectionVariables.get('externalId');",
+                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "console.log('Form ' + pm.collectionVariables.get('externalId') + ' published. It is now publicly accessible.');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms",
+                    "{{externalId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Publishes the form, changing its status from DRAFT to ACTIVE. End-users can now access and submit it."
               }
             },
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "console.log('Form ' + pm.collectionVariables.get('externalId') + ' published. It is now publicly accessible.');"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/publish",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}", "publish"]
-            },
-            "description": "Publishes the form, changing its status from DRAFT to ACTIVE. End-users can now access and submit it.\n\nUses the `externalId` saved by Create Form."
-          }
-        },
-        {
-          "name": "Get Form",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const json = pm.response.json();",
-                  "",
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains form data', function () {",
-                  "    pm.expect(json).to.have.property('externalId');",
-                  "    pm.expect(json).to.have.property('name');",
-                  "});",
-                  "",
-                  "if (json.name) {",
-                  "    console.log('Form: ' + json.name + ' | Status: ' + json.status);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}"]
-            },
-            "description": "Retrieves the full form definition including all sections, fields, status, and published URL (if active).\n\nUses the `externalId` saved by Create Form."
-          }
-        },
-        {
-          "name": "Update Form",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
-                ]
+              "name": "Get Form",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const externalId = pm.collectionVariables.get('externalId');",
+                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "",
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response contains form data', function () {",
+                      "    pm.expect(json).to.have.property('externalId');",
+                      "    pm.expect(json).to.have.property('name');",
+                      "});",
+                      "",
+                      "if (json.name) {",
+                      "    console.log('Form: ' + json.name + ' | Status: ' + json.status);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms",
+                    "{{externalId}}"
+                  ]
+                },
+                "description": "Retrieves the full form definition including all sections, fields, status, and published URL (if active)."
               }
             },
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "console.log('Form updated. If the form was ACTIVE, a new DRAFT version has been created. Run Publish Form again to make it live.');"
-                ]
+              "name": "Update Form",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const externalId = pm.collectionVariables.get('externalId');",
+                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "console.log('Form updated. If the form was ACTIVE, a new DRAFT version has been created. Run Publish Form again to make it live.');"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Customer Onboarding Form (Updated)\",\n  \"language\": \"EN\",\n  \"description\": \"Updated form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms",
+                    "{{externalId}}"
+                  ]
+                },
+                "description": "Updates the form. If the form is currently ACTIVE, a new DRAFT version is created — run Publish Form again to make it live.\n\nThis example adds a Company Name field to the original form."
               }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Customer Onboarding Form (Updated)\",\n  \"language\": \"EN\",\n  \"description\": \"Updated form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"description\": null,\n      \"attr\": null,\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"caseFileTitleTemplate\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}"]
-            },
-            "description": "Updates the form. If the form is currently ACTIVE, a new DRAFT version is created — run Publish Form again to make it live.\n\nThis example adds a Company Name field to the original form.\n\nUses the `externalId` saved by Create Form."
-          }
             }
           ]
         },
-        {
-          "name": "Prefilled Form Request",
-          "item": [
         {
           "name": "Create Prefilled Form Request",
           "event": [
@@ -383,9 +409,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -417,42 +441,42 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"answers\": {\n    \"full_name\": {\n      \"editable\": true,\n      \"value\": \"Jane Doe\"\n    },\n    \"email_address\": {\n      \"editable\": true,\n      \"value\": \"jane.doe@example.com\"\n    }\n  }\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/v1/forms/{{externalId}}/requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}", "requests"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forms",
+                "{{externalId}}",
+                "requests"
+              ]
             },
-            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\nThe answer keys (`full_name`, `email_address`) match the `name` properties set on the fields when the form was created. Update them if you use different field names.\n\nThe `requestUrl` is automatically saved. Share it with the end-user to let them access the pre-populated form.\n\nUses the `externalId` saved by Create Form."
+            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\nThe answer keys (`full_name`, `email_address`) match the `name` properties set on the fields when the form was created. Update them if you use different field names.\n\nThe `requestUrl` is automatically saved. Share it with the end-user to let them access the pre-populated form."
           }
-        }
-          ]
         },
         {
           "name": "Form Examples",
-          "description": "Ready-to-run form examples demonstrating specific Collect API features. Each request is a standalone Create Form call — run it, then use Publish Form and the rest of the Form Management steps to take it live.",
+          "description": "Ready-to-run form examples demonstrating specific Collect API features. Each request creates a form in DRAFT status — run Publish Form from the Form Management folder to take it live.",
           "item": [
             {
               "name": "Conditional Fields and Sections",
               "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const token = pm.collectionVariables.get('accessToken');",
-                      "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }"
-                    ]
-                  }
-                },
                 {
                   "listen": "test",
                   "script": {
@@ -479,36 +503,37 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"New Customer Application\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates conditional fields and sections. The Business Details section only appears for business customers. The Agreement ID field only appears when the user indicates an existing agreement.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Information\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": { \"minLength\": 2, \"maxLength\": 100 }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"customer_type\",\n          \"label\": \"Customer Type\",\n          \"required\": true,\n          \"type\": \"CHOICE\",\n          \"layout\": \"RADIO\",\n          \"options\": [\n            { \"label\": \"Individual\", \"value\": \"individual\" },\n            { \"label\": \"Business\", \"value\": \"business\" }\n          ]\n        }\n      ]\n    },\n    {\n      \"title\": \"Business Details\",\n      \"condition\": {\n        \"rules\": [\n          {\n            \"field\": \"customer_type\",\n            \"operator\": \"EQUALS\",\n            \"value\": \"business\"\n          }\n        ]\n      },\n      \"fields\": [\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": { \"maxLength\": 200 }\n        },\n        {\n          \"name\": \"company_registration\",\n          \"label\": \"Company Registration Number\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": false\n        }\n      ]\n    },\n    {\n      \"title\": \"Existing Agreement\",\n      \"fields\": [\n        {\n          \"name\": \"has_existing_agreement\",\n          \"label\": \"Existing agreement with us?\",\n          \"required\": true,\n          \"type\": \"CHOICE\",\n          \"layout\": \"RADIO\",\n          \"options\": [\n            { \"label\": \"Yes\", \"value\": \"yes\" },\n            { \"label\": \"No\", \"value\": \"no\" }\n          ]\n        },\n        {\n          \"name\": \"existing_agreement_id\",\n          \"label\": \"Agreement ID\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"condition\": {\n            \"rules\": [\n              {\n                \"field\": \"has_existing_agreement\",\n                \"operator\": \"EQUALS\",\n                \"value\": \"yes\"\n              }\n            ]\n          }\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"caseFileTitleTemplate\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "raw": "{\n  \"name\": \"New Customer Application\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates conditional fields and sections. The Business Details section only appears for business customers. The Agreement ID field only appears when the user indicates an existing agreement.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Information\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"customer_type\",\n          \"label\": \"Customer Type\",\n          \"required\": true,\n          \"type\": \"CHOICE\",\n          \"layout\": \"RADIO\",\n          \"options\": [\n            {\n              \"label\": \"Individual\",\n              \"value\": \"individual\"\n            },\n            {\n              \"label\": \"Business\",\n              \"value\": \"business\"\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"title\": \"Business Details\",\n      \"condition\": {\n        \"rules\": [\n          {\n            \"field\": \"customer_type\",\n            \"operator\": \"EQUALS\",\n            \"value\": \"business\"\n          }\n        ]\n      },\n      \"fields\": [\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"company_registration\",\n          \"label\": \"Company Registration Number\",\n          \"required\": false,\n          \"type\": \"TEXT\"\n        }\n      ]\n    },\n    {\n      \"title\": \"Existing Agreement\",\n      \"fields\": [\n        {\n          \"name\": \"has_existing_agreement\",\n          \"label\": \"Existing agreement with us?\",\n          \"required\": true,\n          \"type\": \"CHOICE\",\n          \"layout\": \"RADIO\",\n          \"options\": [\n            {\n              \"label\": \"Yes\",\n              \"value\": \"yes\"\n            },\n            {\n              \"label\": \"No\",\n              \"value\": \"no\"\n            }\n          ]\n        },\n        {\n          \"name\": \"existing_agreement_id\",\n          \"label\": \"Agreement ID\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"condition\": {\n            \"rules\": [\n              {\n                \"field\": \"has_existing_agreement\",\n                \"operator\": \"EQUALS\",\n                \"value\": \"yes\"\n              }\n            ]\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/v1/forms",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["v1", "forms"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
                 },
-                "description": "Creates a form demonstrating two types of conditional visibility:\n\n**Conditional section** — The \"Business Details\" section (company name, registration number) is hidden until the user selects \"Business\" for Customer Type.\n\n**Conditional field** — The \"Agreement ID\" field is hidden until the user selects \"Yes\" for the existing agreement question. It becomes required once visible.\n\nBoth use a single `EQUALS` rule. The `field` value in each rule references the `name` of an earlier field.\n\nThe `externalId` is saved automatically. Run Publish Form next, then share the public URL or create a prefilled request."
+                "description": "Creates a form demonstrating two types of conditional visibility:\n\n**Conditional section** — The \"Business Details\" section (company name, registration number) is hidden until the user selects \"Business\" for Customer Type.\n\n**Conditional field** — The \"Agreement ID\" field is hidden until the user selects \"Yes\" for the existing agreement question. It becomes required once visible.\n\nBoth use a single `EQUALS` rule. The `field` value in each rule references the `name` of an earlier field."
               }
             },
             {
               "name": "Set Casefile Name",
               "event": [
                 {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const token = pm.collectionVariables.get('accessToken');",
-                      "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }"
-                    ]
-                  }
-                },
-                {
                   "listen": "test",
                   "script": {
                     "type": "text/javascript",
@@ -534,36 +559,37 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Employee Contract\",\n  \"language\": \"EN\",\n  \"caseFileTitleTemplate\": \"{{formName}} - {{primarySigner.name}} ({{primarySigner.email}})\",\n  \"sections\": [\n    {\n      \"title\": \"Employee Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": { \"minLength\": 2, \"maxLength\": 100 }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"job_title\",\n          \"label\": \"Job Title\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"multiline\": false,\n          \"validations\": { \"maxLength\": 100 }\n        },\n        {\n          \"name\": \"start_date\",\n          \"label\": \"Start Date\",\n          \"required\": true,\n          \"type\": \"DATE\"\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "raw": "{\n  \"name\": \"Employee Contract\",\n  \"language\": \"EN\",\n  \"caseFileTitleTemplate\": \"{{formName}} - {{primarySigner.name}} ({{primarySigner.email}})\",\n  \"sections\": [\n    {\n      \"title\": \"Employee Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"job_title\",\n          \"label\": \"Job Title\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"start_date\",\n          \"label\": \"Start Date\",\n          \"required\": true,\n          \"type\": \"DATE\"\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/v1/forms",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["v1", "forms"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
                 },
-                "description": "Creates a form with a `caseFileTitleTemplate` that controls how the resulting casefile is named in Penneo Sign.\n\nThe template supports merge fields that are resolved at submission time:\n- `{{formName}}` — the name of the form\n- `{{primarySigner.name}}` — the signer's full name\n- `{{primarySigner.email}}` — the signer's email address\n\n**Note:** These are Penneo merge fields, not Postman variables. Postman will leave them as-is in the request body since they are not defined as collection variables.\n\nThe `externalId` is saved automatically. Run Publish Form next."
+                "description": "Creates a form with a `caseFileTitleTemplate` that controls how the resulting casefile is named in Penneo Sign.\n\nThe template supports merge fields that are resolved at submission time:\n- `{{formName}}` — the name of the form\n- `{{primarySigner.name}}` — the signer's full name\n- `{{primarySigner.email}}` — the signer's email address\n\n**Note:** These are Penneo merge fields, not Postman variables. Postman will leave them as-is in the request body since they are not defined as collection variables."
               }
             },
             {
               "name": "Merge Fields in HTML Content",
               "event": [
                 {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const token = pm.collectionVariables.get('accessToken');",
-                      "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }"
-                    ]
-                  }
-                },
-                {
                   "listen": "test",
                   "script": {
                     "type": "text/javascript",
@@ -589,36 +615,37 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Loan Application\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates merge fields in HTML content. Answers collected in earlier sections are injected into a summary section so the applicant can review before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Information\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"type\": \"TEXT\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.name\",\n          \"validations\": { \"minLength\": 2, \"maxLength\": 100 }\n        },\n        {\n          \"name\": \"email_address\",\n          \"type\": \"EMAIL\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.email\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"type\": \"PHONE\",\n          \"label\": \"Phone Number\",\n          \"required\": true,\n          \"countryCodes\": [\"DK\", \"NO\", \"SE\", \"DE\", \"GB\"]\n        }\n      ]\n    },\n    {\n      \"title\": \"Loan Details\",\n      \"fields\": [\n        {\n          \"name\": \"loan_amount\",\n          \"type\": \"NUMBER\",\n          \"label\": \"Loan Amount (DKK)\",\n          \"required\": true,\n          \"validations\": { \"min\": 10000, \"max\": 500000 }\n        },\n        {\n          \"name\": \"loan_purpose\",\n          \"type\": \"CHOICE\",\n          \"label\": \"Loan Purpose\",\n          \"required\": true,\n          \"layout\": \"SELECT\",\n          \"options\": [\n            { \"label\": \"Home Improvement\", \"value\": \"home_improvement\" },\n            { \"label\": \"Vehicle Purchase\", \"value\": \"vehicle\" },\n            { \"label\": \"Debt Consolidation\", \"value\": \"debt_consolidation\" },\n            { \"label\": \"Education\", \"value\": \"education\" },\n            { \"label\": \"Other\", \"value\": \"other\" }\n          ]\n        },\n        {\n          \"name\": \"repayment_period\",\n          \"type\": \"CHOICE\",\n          \"label\": \"Repayment Period\",\n          \"required\": true,\n          \"layout\": \"RADIO\",\n          \"options\": [\n            { \"label\": \"12 months\", \"value\": \"12\" },\n            { \"label\": \"24 months\", \"value\": \"24\" },\n            { \"label\": \"36 months\", \"value\": \"36\" },\n            { \"label\": \"48 months\", \"value\": \"48\" }\n          ]\n        }\n      ]\n    },\n    {\n      \"title\": \"Application Summary\",\n      \"fields\": [\n        {\n          \"type\": \"HTML\",\n          \"content\": \"<p><strong>Please review your application:</strong></p><p>Applicant: <strong>{{full_name}}</strong></p><p>Email: {{email_address}}</p><p>Loan Amount: {{loan_amount}} DKK</p><p>Purpose: {{loan_purpose}}</p><p>Repayment: {{repayment_period}} months</p><p><em>By signing, you confirm all information is accurate.</em></p>\"\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"caseFileTitleTemplate\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "raw": "{\n  \"name\": \"Loan Application\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates merge fields in HTML content. Answers collected in earlier sections are injected into a summary section so the applicant can review before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Information\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"type\": \"TEXT\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.name\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"type\": \"EMAIL\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.email\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"type\": \"PHONE\",\n          \"label\": \"Phone Number\",\n          \"required\": true,\n          \"countryCodes\": [\n            \"DK\",\n            \"NO\",\n            \"SE\",\n            \"DE\",\n            \"GB\"\n          ]\n        }\n      ]\n    },\n    {\n      \"title\": \"Loan Details\",\n      \"fields\": [\n        {\n          \"name\": \"loan_amount\",\n          \"type\": \"NUMBER\",\n          \"label\": \"Loan Amount (DKK)\",\n          \"required\": true,\n          \"validations\": {\n            \"min\": 10000,\n            \"max\": 500000\n          }\n        },\n        {\n          \"name\": \"loan_purpose\",\n          \"type\": \"CHOICE\",\n          \"label\": \"Loan Purpose\",\n          \"required\": true,\n          \"layout\": \"SELECT\",\n          \"options\": [\n            {\n              \"label\": \"Home Improvement\",\n              \"value\": \"home_improvement\"\n            },\n            {\n              \"label\": \"Vehicle Purchase\",\n              \"value\": \"vehicle\"\n            },\n            {\n              \"label\": \"Debt Consolidation\",\n              \"value\": \"debt_consolidation\"\n            },\n            {\n              \"label\": \"Education\",\n              \"value\": \"education\"\n            },\n            {\n              \"label\": \"Other\",\n              \"value\": \"other\"\n            }\n          ]\n        },\n        {\n          \"name\": \"repayment_period\",\n          \"type\": \"CHOICE\",\n          \"label\": \"Repayment Period\",\n          \"required\": true,\n          \"layout\": \"RADIO\",\n          \"options\": [\n            {\n              \"label\": \"12 months\",\n              \"value\": \"12\"\n            },\n            {\n              \"label\": \"24 months\",\n              \"value\": \"24\"\n            },\n            {\n              \"label\": \"36 months\",\n              \"value\": \"36\"\n            },\n            {\n              \"label\": \"48 months\",\n              \"value\": \"48\"\n            }\n          ]\n        }\n      ]\n    },\n    {\n      \"title\": \"Application Summary\",\n      \"fields\": [\n        {\n          \"type\": \"HTML\",\n          \"content\": \"<p><strong>Please review your application:</strong></p><p>Applicant: <strong>{{full_name}}</strong></p><p>Email: {{email_address}}</p><p>Loan Amount: {{loan_amount}} DKK</p><p>Purpose: {{loan_purpose}}</p><p>Repayment: {{repayment_period}} months</p><p><em>By signing, you confirm all information is accurate.</em></p>\"\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/v1/forms",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["v1", "forms"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
                 },
-                "description": "Creates a form demonstrating merge fields in HTML content. The third section contains an HTML field that references answers from earlier fields by their `name` property using `{{fieldName}}` syntax.\n\nThe \"Application Summary\" section dynamically renders a review block showing the applicant's name, email, loan amount, purpose, and repayment period — all pulled from earlier answers.\n\n**How merge field keys work:** Use `{{name}}` where `name` is the `name` property of the source field. The source field must be required and non-conditional.\n\nThe `externalId` is saved automatically. Run Publish Form next."
+                "description": "Creates a form demonstrating merge fields in HTML content. The third section contains an HTML field that references answers from earlier fields by their `name` property using `{{fieldName}}` syntax.\n\nThe \"Application Summary\" section dynamically renders a review block showing the applicant's name, email, loan amount, purpose, and repayment period — all pulled from earlier answers.\n\n**How merge field keys work:** Use `{{name}}` where `name` is the `name` property of the source field. The source field must be required and non-conditional."
               }
             },
             {
               "name": "Map Fields to Signer",
               "event": [
                 {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const token = pm.collectionVariables.get('accessToken');",
-                      "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }"
-                    ]
-                  }
-                },
-                {
                   "listen": "test",
                   "script": {
                     "type": "text/javascript",
@@ -644,69 +671,35 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Contact Information\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates the mapTo property. Fields mapped to primarySigner.name and primarySigner.email automatically identify the form filler as the primary signer — no separate signer configuration needed.\",\n  \"sections\": [\n    {\n      \"title\": \"Your Details\",\n      \"description\": \"We will use this information to identify you as the signer.\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"type\": \"TEXT\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.name\",\n          \"validations\": { \"maxLength\": 100 }\n        },\n        {\n          \"name\": \"email_address\",\n          \"type\": \"EMAIL\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.email\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"type\": \"PHONE\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"countryCodes\": [\"DK\", \"NO\", \"SE\", \"DE\", \"GB\"]\n        }\n      ]\n    }\n  ],\n  \"additionalSignersConfig\": null,\n  \"cancelUrl\": null,\n  \"caseFileTitleTemplate\": null,\n  \"predefinedSigners\": [],\n  \"successUrl\": null\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "raw": "{\n  \"name\": \"Contact Information\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates the mapTo property. Fields mapped to primarySigner.name and primarySigner.email automatically identify the form filler as the primary signer — no separate signer configuration needed.\",\n  \"sections\": [\n    {\n      \"title\": \"Your Details\",\n      \"description\": \"We will use this information to identify you as the signer.\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"type\": \"TEXT\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.name\",\n          \"validations\": {\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"type\": \"EMAIL\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"mapTo\": \"primarySigner.email\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"type\": \"PHONE\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"countryCodes\": [\n            \"DK\",\n            \"NO\",\n            \"SE\",\n            \"DE\",\n            \"GB\"\n          ]\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{baseUrl}}/v1/forms",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["v1", "forms"]
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
                 },
-                "description": "Creates a form demonstrating the `mapTo` property. Two fields are mapped to primary signer properties:\n\n- `\"mapTo\": \"primarySigner.name\"` on the Full Name field\n- `\"mapTo\": \"primarySigner.email\"` on the Email Address field\n\nWhen the form filler submits, Penneo uses these values to automatically identify them as the primary signer — no separate signer setup or `predefinedSigners` configuration required.\n\n**Constraint:** The field mapped to any `*.email` property must be of type `EMAIL`.\n\nThe `externalId` is saved automatically. Run Publish Form next."
-              }
-            },
-            {
-              "name": "Publish Form",
-              "event": [
-                {
-                  "listen": "prerequest",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const token = pm.collectionVariables.get('accessToken');",
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!token) { throw new Error('accessToken is not set. Run request 1 first.'); }",
-                      "if (!externalId) { throw new Error('externalId is not set. Run one of the example requests above first.'); }"
-                    ]
-                  }
-                },
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "pm.test('Status code is 200', function () {",
-                      "    pm.response.to.have.status(200);",
-                      "});",
-                      "",
-                      "console.log('Form ' + pm.collectionVariables.get('externalId') + ' published. It is now publicly accessible.');"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}/publish",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["v1", "forms", "{{externalId}}", "publish"]
-                },
-                "description": "Publishes the form created by any of the example requests above, changing its status from DRAFT to ACTIVE.\n\nUses the `externalId` saved automatically by the example request."
+                "description": "Creates a form demonstrating the `mapTo` property. Two fields are mapped to primary signer properties:\n\n- `\"mapTo\": \"primarySigner.name\"` on the Full Name field\n- `\"mapTo\": \"primarySigner.email\"` on the Email Address field\n\nWhen the form filler submits, Penneo uses these values to automatically identify them as the primary signer — no separate signer setup or `predefinedSigners` configuration required.\n\n**Constraint:** The field mapped to any `*.email` property must be of type `EMAIL`."
               }
             }
           ]
         },
-        {
-          "name": "Deactivate Form",
-          "item": [
         {
           "name": "Deactivate Form",
           "event": [
@@ -715,9 +708,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -738,18 +729,20 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/v1/forms/{{externalId}}/archive",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}", "archive"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forms",
+                "{{externalId}}",
+                "archive"
+              ]
             },
-            "description": "Archives the form, changing its status from ACTIVE to ARCHIVED. The public URL becomes inactive and no new submissions are accepted.\n\nExisting submissions are preserved and can still be retrieved via the Data Retrieval steps.\n\nUses the `externalId` saved by Create Form."
+            "description": "Archives the form, changing its status from ACTIVE to ARCHIVED. The public URL becomes inactive and no new submissions are accepted.\n\nExisting submissions are preserved and can still be retrieved via the Data Retrieval steps."
           }
-        }
-          ]
         }
       ]
     },
@@ -764,9 +757,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -786,16 +777,17 @@
                   "    pm.expect(json).to.have.property('items').that.is.an('array');",
                   "});",
                   "",
-                  "console.log('Submissions returned: ' + json.items.length);",
-                  "",
-                  "if (json.items.length > 0) {",
-                  "    const first = json.items[0];",
-                  "    pm.collectionVariables.set('submissionId', first.submissionId);",
-                  "    pm.collectionVariables.set('casefileId', String(first.casefileId));",
-                  "    console.log('First submissionId saved: ' + first.submissionId);",
-                  "    console.log('First casefileId saved: ' + first.casefileId);",
-                  "    if (json.items.length > 1) {",
-                  "        console.log('Multiple submissions found (' + json.items.length + '). Variables set to the first. Update manually for others.');",
+                  "if (json.items) {",
+                  "    console.log('Submissions returned: ' + json.items.length);",
+                  "    if (json.items.length > 0) {",
+                  "        const first = json.items[0];",
+                  "        pm.collectionVariables.set('submissionId', first.submissionId);",
+                  "        pm.collectionVariables.set('casefileId', String(first.casefileId));",
+                  "        console.log('First submissionId saved: ' + first.submissionId);",
+                  "        console.log('First casefileId saved: ' + first.casefileId);",
+                  "        if (json.items.length > 1) {",
+                  "            console.log('Multiple submissions (' + json.items.length + '). Variables set to the first.');",
+                  "        }",
                   "    }",
                   "}"
                 ]
@@ -804,19 +796,31 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions?limit=1000&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}", "submissions"],
+              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions?limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forms",
+                "{{externalId}}",
+                "submissions"
+              ],
               "query": [
-                { "key": "limit", "value": "1000", "description": "Maximum number of results to return (1–1000, default 1000)." },
-                { "key": "offset", "value": "0", "description": "Number of results to skip for pagination." }
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Maximum number of results to return (1–1000)."
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of results to skip for pagination."
+                }
               ]
             },
-            "description": "Returns all submissions for the given form. Only completed, processed submissions are included, ordered by submission ID ascending.\n\nAutomatically saves `submissionId` and `casefileId` from the first result. If there are multiple submissions, update those variables manually to work with a specific one.\n\nUse `limit` and `offset` to paginate through large result sets.\n\nUses the `externalId` saved by Create Form."
+            "description": "Returns all submissions for the given form. Only completed, processed submissions are included, ordered by submission ID ascending.\n\nAutomatically saves `submissionId` and `casefileId` from the first result. If there are multiple submissions, update those variables manually to work with a specific one.\n\nUse `limit` and `offset` to paginate through large result sets."
           }
         },
         {
@@ -827,10 +831,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const externalId = pm.collectionVariables.get('externalId');",
                   "const submissionId = pm.collectionVariables.get('submissionId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
                   "if (!submissionId) { throw new Error('submissionId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
@@ -852,15 +854,21 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions/{{submissionId}}/answers",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "forms", "{{externalId}}", "submissions", "{{submissionId}}", "answers"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "forms",
+                "{{externalId}}",
+                "submissions",
+                "{{submissionId}}",
+                "answers"
+              ]
             },
-            "description": "Retrieves all form field answers submitted by the end-user for a specific submission.\n\nUses `externalId` and `submissionId` — both saved automatically by List Submissions. To retrieve answers for a different submission, update `submissionId` manually in the Variables tab."
+            "description": "Retrieves all form field answers submitted by the end-user for a specific submission."
           }
         },
         {
@@ -871,9 +879,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const casefileId = pm.collectionVariables.get('casefileId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!casefileId) { throw new Error('casefileId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -900,14 +906,17 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-              { "key": "Accept", "value": "application/json" }
-            ],
             "url": {
               "raw": "{{baseUrl}}/v1/casefiles/{{casefileId}}/files",
-              "host": ["{{baseUrl}}"],
-              "path": ["v1", "casefiles", "{{casefileId}}", "files"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "casefiles",
+                "{{casefileId}}",
+                "files"
+              ]
             },
             "description": "Lists all files (e.g. uploaded attachments from FILE fields) attached to a specific casefile, including filename, size, and download link.\n\n**Requires `casefileId`** — set it manually in the collection Variables tab."
           }
@@ -920,9 +929,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const casefileId = pm.collectionVariables.get('casefileId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!casefileId) { throw new Error('casefileId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -959,15 +966,19 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
             "url": {
               "raw": "{{signBaseUrl}}/api/v1/casefiles/{{casefileId}}",
-              "host": ["{{signBaseUrl}}"],
-              "path": ["api", "v1", "casefiles", "{{casefileId}}"]
+              "host": [
+                "{{signBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "casefiles",
+                "{{casefileId}}"
+              ]
             },
-            "description": "Retrieves the full casefile details from the Penneo Sign API, including status, signers, and documents.\n\nAutomatically saves `documentId` from the first document in the response — used by Get Signed Document.\n\nUses `signBaseUrl` (https://sandbox.penneo.com) rather than the Collect API base URL.\n\nUses the `casefileId` saved by List Submissions."
+            "description": "Retrieves the full casefile details from the Penneo Sign API, including status, signers, and documents.\n\nAutomatically saves `documentId` from the first document in the response — used by Get Signed Document.\n\nUses `signBaseUrl` (https://sandbox.penneo.com) rather than the Collect API base URL."
           }
         },
         {
@@ -978,9 +989,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const token = pm.collectionVariables.get('accessToken');",
                   "const documentId = pm.collectionVariables.get('documentId');",
-                  "if (!token) { throw new Error('accessToken is not set. Run request 1 first (token may have expired after 10 minutes).'); }",
                   "if (!documentId) { throw new Error('documentId is not set. Run Get Casefile Details first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -1006,18 +1015,54 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
-              { "key": "Accept", "value": "application/pdf" }
+              {
+                "key": "Accept",
+                "value": "application/pdf"
+              }
             ],
             "url": {
               "raw": "{{signBaseUrl}}/api/v3/documents/{{documentId}}/content",
-              "host": ["{{signBaseUrl}}"],
-              "path": ["api", "v3", "documents", "{{documentId}}", "content"]
+              "host": [
+                "{{signBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v3",
+                "documents",
+                "{{documentId}}",
+                "content"
+              ]
             },
             "description": "Downloads the signed PDF document. Set the response type to 'Send and Download' in Postman to save the file locally.\n\nThis uses `signBaseUrl` (https://sandbox.penneo.com) rather than the Collect API base URL, as it calls the Penneo Sign API — the same endpoint as in the Penneo API collection.\n\n**Requires `documentId`** — set it manually in the collection Variables tab. The document ID is available from step 4 of the Penneo API collection.\n\nTo download as JSON instead of PDF, change the `Accept` header to `application/json`."
           }
         }
       ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName !== '1. Get Access Token') {",
+          "    const token = pm.collectionVariables.get('accessToken');",
+          "    if (!token) {",
+          "        throw new Error('accessToken is not set. Run \"1. Get Access Token\" first (token expires after 10 minutes).');",
+          "    }",
+          "}"
+        ]
+      }
     }
   ]
 }
