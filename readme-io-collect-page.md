@@ -1,15 +1,31 @@
-# Penneo Collect API — Postman Collection
+# Collect Postman Collection
 
-This collection lets you create and manage Penneo Collect forms, generate prefilled form links, and retrieve submission data and signed documents — all without writing any code.
+Test Penneo's Collect API using our official Postman collection. Create and manage Collect forms, generate prefilled form links, and retrieve submission data and signed documents.
 
----
+## Import the collection
+
+In Postman, go to **Import → Link** and paste the URL below:
+
+```
+https://raw.githubusercontent.com/Penneo/Penneo-api-postman/main/penneo-collect-api.postman_collection.json
+```
+
+## Prerequisites
+
+Before running the collection you need:
+
+- A Penneo account with administrator access
+- An OAuth client created in Penneo (**Configure → OAuth Clients**)
+- API keys generated for your account
+
+See [Authentication](https://penneo.readme.io/docs/using-oauth) for step-by-step instructions on setting up OAuth clients and API keys.
 
 ## Setup
 
-Before running any requests, open the collection in Postman and go to the **Variables** tab. Fill in the following four values:
+After importing, open the collection in Postman and go to the **Variables** tab. Fill in the four required variables:
 
 | Variable | Description |
-|---|---|
+|----------|-------------|
 | `clientId` | Your OAuth client ID |
 | `clientSecret` | Your OAuth client secret |
 | `apiKey` | Your Penneo API key |
@@ -17,27 +33,23 @@ Before running any requests, open the collection in Postman and go to the **Vari
 
 All other variables are set automatically as you run the requests in order.
 
-The collection is pre-configured for **sandbox**. When you are ready to go live, update these two variables:
+The collection is pre-configured for **sandbox**. When you are ready to test against production, update the following variables:
 
-| Variable | Sandbox | Production |
-|---|---|---|
-| `baseUrl` | `https://sandbox.penneo.com/collect/api` | `https://app.penneo.com/collect/api` |
-| `authUrl` | `https://sandbox.oauth.penneo.cloud` | `https://login.penneo.com` |
-| `signBaseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
+| Variable | Production value |
+|----------|-----------------|
+| `baseUrl` | `https://app.penneo.com/collect/api` |
+| `authUrl` | `https://login.penneo.com` |
+| `signBaseUrl` | `https://app.penneo.com` |
 
----
+## Requests
 
-## Authentication
+### 1. Get Access Token
 
-**`1. Get Access Token`**
+Authenticates using the [API Keys Grant](https://penneo.readme.io/docs/using-oauth#api-keys-grant) flow. The nonce, timestamp, and digest are calculated automatically by the pre-request script — no manual steps required.
 
-Run this before anything else. It uses the API Keys Grant flow — the pre-request script automatically computes the nonce, timestamp, and SHA1 digest from your credentials, so no manual preparation is needed.
-
-The access token is valid for **10 minutes** and is saved to `accessToken` automatically. If a later request returns `401 Unauthorized`, re-run this request to get a fresh token.
+The access token is valid for **10 minutes** and is saved to `accessToken` automatically. If a later request returns `401`, re-run this request to get a fresh token.
 
 ---
-
-## Collect Management
 
 ### Form Management
 
@@ -51,23 +63,17 @@ The example body includes a single section with four fields: Full Name (TEXT), E
 
 > Saves: `externalId`
 
----
-
 **`Publish Form`** `POST /v1/forms/{{externalId}}/publish`
 
 Publishes the form, changing its status from DRAFT to ACTIVE. End-users can now access and submit it via its public URL.
 
 > Requires: `externalId`
 
----
-
 **`Get Form`** `GET /v1/forms/{{externalId}}`
 
 Retrieves the full form definition including all sections, fields, current status, and public URL (if active). Useful for inspecting the form after creating or updating it.
 
 > Requires: `externalId`
-
----
 
 **`Update Form`** `PUT /v1/forms/{{externalId}}`
 
@@ -118,23 +124,17 @@ Conditions use an `EQUALS` rule referencing the `name` of an earlier field.
 
 > Saves: `externalId`
 
----
-
 **`Set Casefile Name`** `POST /v1/forms`
 
 Creates a form with a `caseFileTitleTemplate` that controls how the resulting casefile is named in Penneo Sign. The template uses merge fields resolved at submission time: `{{formName}}`, `{{primarySigner.name}}`, and `{{primarySigner.email}}`.
 
 > Saves: `externalId`
 
----
-
 **`Merge Fields in HTML Content`** `POST /v1/forms`
 
 Creates a loan application form demonstrating merge fields in HTML content. Answers collected in earlier sections are injected into a final summary section using `{{fieldName}}` syntax, so the applicant can review their input before signing. The merge field key matches the `name` property of the source field.
 
 > Saves: `externalId`
-
----
 
 **`Map Fields to Signer`** `POST /v1/forms`
 
@@ -144,7 +144,7 @@ Creates a form demonstrating the `mapTo` property. Fields mapped to `primarySign
 
 ---
 
-## Data Retrieval
+### Data Retrieval
 
 Run these in order once end-users have submitted and signed the form.
 
@@ -159,23 +159,17 @@ Supports pagination via `limit` (default 10, max 1000) and `offset` query parame
 > Requires: `externalId`  
 > Saves: `submissionId`, `casefileId`
 
----
-
 **`Get Submitted User Data`** `GET /v1/forms/{{externalId}}/submissions/{{submissionId}}/answers`
 
 Retrieves all field answers submitted by the end-user for a specific submission.
 
 > Requires: `externalId`, `submissionId`
 
----
-
 **`List Files for Casefile`** `GET /v1/casefiles/{{casefileId}}/files`
 
 Lists all file attachments (uploaded via FILE fields) linked to a casefile, including filename, size, and download link.
 
 > Requires: `casefileId`
-
----
 
 **`Get Casefile Details`** `GET /api/v1/casefiles/{{casefileId}}`
 
@@ -185,8 +179,6 @@ This request uses `signBaseUrl` rather than the Collect API base URL, as it call
 
 > Requires: `casefileId`  
 > Saves: `documentId`
-
----
 
 **`Get Signed Document`** `GET /api/v3/documents/{{documentId}}/content`
 
