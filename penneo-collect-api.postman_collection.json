@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Penneo Collect API",
-    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`externalId` is saved automatically when you create a form. `casefileId` and `documentId` must be set manually — they come from a completed signing flow in the Penneo API collection.",
+    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`formId` is saved automatically when you create a form. `casefileId` and `documentId` must be set manually — they come from a completed signing flow in the Penneo API collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -61,7 +61,7 @@
       "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
     },
     {
-      "key": "externalId",
+      "key": "formId",
       "value": "",
       "description": "Auto-set by Create Form. Can also be set manually to target an existing form."
     },
@@ -69,6 +69,11 @@
       "key": "requestUrl",
       "value": "",
       "description": "Auto-set by Create Prefilled Form Request. The public URL to share with the end-user."
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "description": "Auto-set by Create Prefilled Form Request. Can also be set manually to target an existing prefilled request."
     },
     {
       "key": "casefileId",
@@ -184,7 +189,7 @@
     },
     {
       "name": "Collect Management",
-      "description": "Requests for creating and managing forms.\n\n**Note:** If you update a form that is already published (ACTIVE), a new DRAFT version is created under the same `externalId`. You need to run **Publish Form** again to make the changes live.",
+      "description": "Requests for creating and managing forms.\n\n**Note:** If you update a form that is already published (ACTIVE), a new DRAFT version is created under the same `formId`. You need to run **Publish Form** again to make the changes live.",
       "item": [
         {
           "name": "Form Management",
@@ -203,13 +208,13 @@
                       "    pm.response.to.have.status(201);",
                       "});",
                       "",
-                      "pm.test('Response contains externalId', function () {",
-                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
                       "});",
                       "",
-                      "if (json.externalId) {",
-                      "    pm.collectionVariables.set('externalId', json.externalId);",
-                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
                   }
@@ -225,7 +230,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Customer Onboarding Form\",\n  \"language\": \"EN\",\n  \"description\": \"A simple form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "raw": "{\n  \"name\": \"Customer Onboarding Form\",\n  \"language\": \"EN\",\n  \"description\": \"A simple form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"slug\": \"personal-details\",\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -240,9 +245,17 @@
                   "path": [
                     "v1",
                     "forms"
+                  ],
+                  "query": [
+                    {
+                      "key": "publish",
+                      "value": "true",
+                      "description": "Optional. If `true`, the form is created and published in a single call — skip Publish Form.",
+                      "disabled": true
+                    }
                   ]
                 },
-                "description": "Creates a new form in DRAFT status. The `externalId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published."
+                "description": "Creates a new form in DRAFT status. The `formId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published.\n\n**Optional query param:** Set `?publish=true` to create and publish in a single call — Publish Form is then not needed."
               }
             },
             {
@@ -253,8 +266,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -267,7 +280,7 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "",
-                      "console.log('Form ' + pm.collectionVariables.get('externalId') + ' published. It is now publicly accessible.');"
+                      "console.log('Form ' + pm.collectionVariables.get('formId') + ' published. It is now publicly accessible.');"
                     ]
                   }
                 }
@@ -275,14 +288,14 @@
               "request": {
                 "method": "POST",
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}/publish",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}/publish",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}",
+                    "{{formId}}",
                     "publish"
                   ]
                 },
@@ -297,8 +310,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -314,7 +327,7 @@
                       "});",
                       "",
                       "pm.test('Response contains form data', function () {",
-                      "    pm.expect(json).to.have.property('externalId');",
+                      "    pm.expect(json).to.have.property('formId');",
                       "    pm.expect(json).to.have.property('name');",
                       "});",
                       "",
@@ -328,14 +341,14 @@
               "request": {
                 "method": "GET",
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}"
+                    "{{formId}}"
                   ]
                 },
                 "description": "Retrieves the full form definition including all sections, fields, status, and published URL (if active)."
@@ -349,8 +362,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -378,7 +391,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Customer Onboarding Form (Updated)\",\n  \"language\": \"EN\",\n  \"description\": \"Updated form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "raw": "{\n  \"name\": \"Customer Onboarding Form (Updated)\",\n  \"language\": \"EN\",\n  \"description\": \"Updated form to collect customer information before signing.\",\n  \"sections\": [\n    {\n      \"slug\": \"personal-details\",\n      \"title\": \"Personal Details\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_number\",\n          \"label\": \"Phone Number\",\n          \"required\": false,\n          \"type\": \"PHONE\"\n        },\n        {\n          \"name\": \"company_name\",\n          \"label\": \"Company Name\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"additional_comments\",\n          \"label\": \"Additional Comments\",\n          \"required\": false,\n          \"type\": \"TEXT\",\n          \"multiline\": true,\n          \"validations\": {\n            \"maxLength\": 500\n          }\n        }\n      ]\n    }\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -386,17 +399,25 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}"
+                    "{{formId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "publish",
+                      "value": "true",
+                      "description": "Optional. If `true`, the form is updated and published in a single call — skip Publish Form.",
+                      "disabled": true
+                    }
                   ]
                 },
-                "description": "Updates the form. If the form is currently ACTIVE, a new DRAFT version is created — run Publish Form again to make it live.\n\nThis example adds a Company Name field to the original form."
+                "description": "Updates the form. If the form is currently ACTIVE, a new DRAFT version is created — run Publish Form again to make it live.\n\nThis example adds a Company Name field to the original form.\n\n**Optional query param:** Set `?publish=true` to update and publish in a single call — Publish Form is then not needed."
               }
             }
           ]
@@ -412,8 +433,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -428,14 +449,20 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('Response contains requestUrl', function () {",
+                  "pm.test('Response contains requestUrl and requestId', function () {",
                   "    pm.expect(json).to.have.property('requestUrl').that.is.a('string').and.is.not.empty;",
+                  "    pm.expect(json).to.have.property('requestId').that.is.a('string').and.is.not.empty;",
                   "});",
                   "",
                   "if (json.requestUrl) {",
                   "    pm.collectionVariables.set('requestUrl', json.requestUrl);",
                   "    console.log('Prefilled form URL saved: ' + json.requestUrl);",
                   "    console.log('Share this URL with the end-user to open the form with pre-populated values.');",
+                  "}",
+                  "",
+                  "if (json.requestId) {",
+                  "    pm.collectionVariables.set('requestId', json.requestId);",
+                  "    console.log('requestId saved: ' + json.requestId);",
                   "}"
                 ]
               }
@@ -451,7 +478,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"answers\": {\n    \"full_name\": {\n      \"editable\": true,\n      \"value\": \"Jane Doe\"\n    },\n    \"email_address\": {\n      \"editable\": true,\n      \"value\": \"jane.doe@example.com\"\n    }\n  }\n}",
+              "raw": "{\n  \"answers\": {\n    \"personal-details\": [\n      {\n        \"full_name\": {\n          \"editable\": true,\n          \"value\": \"Jane Doe\"\n        },\n        \"email_address\": {\n          \"editable\": true,\n          \"value\": \"jane.doe@example.com\"\n        }\n      }\n    ]\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -459,18 +486,66 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/requests",
+              "raw": "{{baseUrl}}/v2/forms/{{formId}}/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v2",
+                "forms",
+                "{{formId}}",
+                "requests"
+              ]
+            },
+            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\n**Body shape:** `answers` is keyed by section `slug`. Each value is a list of section instances (always a list, even for non multi-entry sections — pass a single-element list). Each instance maps field `name` to `{ editable, value }`.\n\nIn this example, `personal-details` is the slug of the section created by **Create Simple Form**, and `full_name` / `email_address` are field names within it. Update them if you use a different form structure.\n\nThe `requestUrl` and `requestId` are automatically saved. Share `requestUrl` with the end-user; `requestId` is used by **Get Request Answers** to fetch what they submitted."
+          }
+        },
+        {
+          "name": "Get Request Answers",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "const requestId = pm.collectionVariables.get('requestId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!requestId) { throw new Error('requestId is not set. Run Create Prefilled Form Request first, or set it manually in the Variables tab.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "console.log('Answers retrieved for request: ' + pm.collectionVariables.get('requestId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/requests/{{requestId}}/answers",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
-                "requests"
+                "{{formId}}",
+                "requests",
+                "{{requestId}}",
+                "answers"
               ]
             },
-            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\nThe answer keys (`full_name`, `email_address`) match the `name` properties set on the fields when the form was created. Update them if you use different field names.\n\nThe `requestUrl` is automatically saved. Share it with the end-user to let them access the pre-populated form."
+            "description": "Retrieves all form field answers submitted by the end-user for a specific prefilled request. Use this when you want to look up what was submitted via a request you created earlier — keyed by `requestId` rather than `submissionId`.\n\n**Requirements:** The form must be in `ACTIVE` or `ARCHIVED` status, and a submission must have been made against the request.\n\n**Response shape:** Same sectioned structure as **Get Submitted User Data** — top-level object with `submissionId`, `formId`, `version`, `respondents`, and a `sections` array. Each section has `title`, `multipleEntries`, and either `answers[]` (non multi-entry) or `instances[]` (multi-entry)."
           }
         }
           ]
@@ -493,13 +568,13 @@
                       "    pm.response.to.have.status(201);",
                       "});",
                       "",
-                      "pm.test('Response contains externalId', function () {",
-                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
                       "});",
                       "",
-                      "if (json.externalId) {",
-                      "    pm.collectionVariables.set('externalId', json.externalId);",
-                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
                   }
@@ -549,13 +624,13 @@
                       "    pm.response.to.have.status(201);",
                       "});",
                       "",
-                      "pm.test('Response contains externalId', function () {",
-                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
                       "});",
                       "",
-                      "if (json.externalId) {",
-                      "    pm.collectionVariables.set('externalId', json.externalId);",
-                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
                   }
@@ -605,13 +680,13 @@
                       "    pm.response.to.have.status(201);",
                       "});",
                       "",
-                      "pm.test('Response contains externalId', function () {",
-                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
                       "});",
                       "",
-                      "if (json.externalId) {",
-                      "    pm.collectionVariables.set('externalId', json.externalId);",
-                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
                   }
@@ -661,13 +736,13 @@
                       "    pm.response.to.have.status(201);",
                       "});",
                       "",
-                      "pm.test('Response contains externalId', function () {",
-                      "    pm.expect(json).to.have.property('externalId').that.is.not.empty;",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
                       "});",
                       "",
-                      "if (json.externalId) {",
-                      "    pm.collectionVariables.set('externalId', json.externalId);",
-                      "    console.log('Form externalId saved: ' + json.externalId);",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
                   }
@@ -702,6 +777,62 @@
                 },
                 "description": "Creates a form demonstrating the `mapTo` property. Two fields are mapped to primary signer properties:\n\n- `\"mapTo\": \"primarySigner.name\"` on the Full Name field\n- `\"mapTo\": \"primarySigner.email\"` on the Email Address field\n\nWhen the form filler submits, Penneo uses these values to automatically identify them as the primary signer — no separate signer setup or `predefinedSigners` configuration required.\n\n**Constraint:** The field mapped to any `*.email` property must be of type `EMAIL`."
               }
+            },
+            {
+              "name": "Multi-Entry Section and Field",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "",
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "pm.test('Response contains formId', function () {",
+                      "    pm.expect(json).to.have.property('formId').that.is.not.empty;",
+                      "});",
+                      "",
+                      "if (json.formId) {",
+                      "    pm.collectionVariables.set('formId', json.formId);",
+                      "    console.log('Form ID saved: ' + json.formId);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Job Application\",\n  \"language\": \"EN\",\n  \"description\": \"Demonstrates a multi-entry section (Previous Employment, repeatable up to 5 times) and a multi-entry field (Phone Numbers, up to 3 values).\",\n  \"sections\": [\n    {\n      \"slug\": \"personal-information\",\n      \"title\": \"Personal Information\",\n      \"fields\": [\n        {\n          \"name\": \"full_name\",\n          \"label\": \"Full Name\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"minLength\": 2,\n            \"maxLength\": 100\n          }\n        },\n        {\n          \"name\": \"email_address\",\n          \"label\": \"Email Address\",\n          \"required\": true,\n          \"type\": \"EMAIL\"\n        },\n        {\n          \"name\": \"phone_numbers\",\n          \"label\": \"Phone Numbers\",\n          \"required\": true,\n          \"type\": \"PHONE\",\n          \"multipleEntries\": {\n            \"max\": 3\n          }\n        }\n      ]\n    },\n    {\n      \"slug\": \"previous-employment\",\n      \"title\": \"Previous Employment\",\n      \"description\": \"Add up to 5 previous employers.\",\n      \"multipleEntries\": {\n        \"max\": 5\n      },\n      \"fields\": [\n        {\n          \"name\": \"employer\",\n          \"label\": \"Employer\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 200\n          }\n        },\n        {\n          \"name\": \"job_title\",\n          \"label\": \"Job Title\",\n          \"required\": true,\n          \"type\": \"TEXT\",\n          \"validations\": {\n            \"maxLength\": 100\n          }\n        }\n      ]\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/v1/forms",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "forms"
+                  ]
+                },
+                "description": "Creates a Job Application form that demonstrates two distinct repeat behaviors:\n\n**Multi-entry field** — `phone_numbers` in Personal Information has `\"multipleEntries\": { \"max\": 3 }`. The end-user can add up to 3 phone numbers in a single Personal Information section. Submitted values come back as a `values[]` array on that field in the answers response.\n\n**Multi-entry section** — Previous Employment has `\"multipleEntries\": { \"max\": 5 }` on the section. The end-user can add up to 5 instances of the section (e.g. one per previous employer), each with its own `employer` and `job_title`. Submitted values come back as `instances[]` on that section in the answers response."
+              }
             }
           ]
         },
@@ -716,8 +847,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -730,7 +861,7 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "console.log('Form ' + pm.collectionVariables.get('externalId') + ' archived. It is no longer publicly accessible. Existing submissions are preserved.');"
+                  "console.log('Form ' + pm.collectionVariables.get('formId') + ' archived. It is no longer publicly accessible. Existing submissions are preserved.');"
                 ]
               }
             }
@@ -738,14 +869,14 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/archive",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/archive",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "archive"
               ]
             },
@@ -767,8 +898,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -807,14 +938,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions?limit=10&offset=0",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/submissions?limit=10&offset=0",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "submissions"
               ],
               "query": [
@@ -827,10 +958,22 @@
                   "key": "offset",
                   "value": "0",
                   "description": "Number of results to skip for pagination."
+                },
+                {
+                  "key": "completedAfter",
+                  "value": "2026-01-01T00:00:00Z",
+                  "description": "Optional. Return only submissions with `casefile completed_at` strictly after this UTC datetime (ISO-8601).",
+                  "disabled": true
+                },
+                {
+                  "key": "completedBefore",
+                  "value": "2026-12-31T23:59:59Z",
+                  "description": "Optional. Return only submissions with `casefile completed_at` strictly before this UTC datetime (ISO-8601).",
+                  "disabled": true
                 }
               ]
             },
-            "description": "Returns all submissions for the given form. Only completed, processed submissions are included, ordered by submission ID ascending.\n\nAutomatically saves `submissionId` and `casefileId` from the first result. If there are multiple submissions, update those variables manually to work with a specific one.\n\nUse `limit` and `offset` to paginate through large result sets."
+            "description": "Returns all submissions for the given form. Only completed, processed submissions are included, ordered by submission ID ascending.\n\nAutomatically saves `submissionId` and `casefileId` from the first result. If there are multiple submissions, update those variables manually to work with a specific one.\n\nUse `limit` and `offset` to paginate through large result sets.\n\n**Optional date filters:** `completedAfter` and `completedBefore` (ISO-8601 UTC) restrict results to submissions whose casefile completed within the given window. Both bounds are exclusive."
           }
         },
         {
@@ -841,9 +984,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
+                  "const formId = pm.collectionVariables.get('formId');",
                   "const submissionId = pm.collectionVariables.get('submissionId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
                   "if (!submissionId) { throw new Error('submissionId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -865,20 +1008,20 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions/{{submissionId}}/answers",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/submissions/{{submissionId}}/answers",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "submissions",
                 "{{submissionId}}",
                 "answers"
               ]
             },
-            "description": "Retrieves all form field answers submitted by the end-user for a specific submission."
+            "description": "Retrieves all form field answers submitted by the end-user for a specific submission.\n\n**Response shape:** Top-level object with `submissionId`, `formId`, `version`, `respondents`, and a `sections` array. Each section has `title`, `multipleEntries` (boolean), and either:\n- `answers[]` — for non multi-entry sections, where each answer has `name`, `label`, `type`, and a typed `value` (or `values[]` for multi-entry fields).\n- `instances[]` — for multi-entry sections, where each instance contains its own `answers[]`.\n\nField values are typed by field type (e.g. `Text`, `Numeric`, `Choice`, `Nin`, `BusinessId`, `File`)."
           }
         },
         {
