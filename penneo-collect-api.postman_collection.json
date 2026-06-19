@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Penneo Collect API",
-    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`externalId` is saved automatically when you create a form. `casefileId` and `documentId` must be set manually — they come from a completed signing flow in the Penneo API collection.",
+    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`formId` is saved automatically when you create a form. `casefileId` and `documentId` must be set manually — they come from a completed signing flow in the Penneo API collection.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -61,7 +61,7 @@
       "description": "Auto-set by request 1 pre-request script. Used internally for WSSE auth."
     },
     {
-      "key": "externalId",
+      "key": "formId",
       "value": "",
       "description": "Auto-set by Create Form. Can also be set manually to target an existing form."
     },
@@ -189,7 +189,7 @@
     },
     {
       "name": "Collect Management",
-      "description": "Requests for creating and managing forms.\n\n**Note:** If you update a form that is already published (ACTIVE), a new DRAFT version is created under the same `externalId`. You need to run **Publish Form** again to make the changes live.",
+      "description": "Requests for creating and managing forms.\n\n**Note:** If you update a form that is already published (ACTIVE), a new DRAFT version is created under the same `formId`. You need to run **Publish Form** again to make the changes live.",
       "item": [
         {
           "name": "Form Management",
@@ -213,7 +213,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -255,7 +255,7 @@
                     }
                   ]
                 },
-                "description": "Creates a new form in DRAFT status. The `externalId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published.\n\n**Optional query param:** Set `?publish=true` to create and publish in a single call — Publish Form is then not needed."
+                "description": "Creates a new form in DRAFT status. The `formId` is automatically saved for use in all subsequent steps.\n\nThe form is not publicly accessible until it is published.\n\n**Optional query param:** Set `?publish=true` to create and publish in a single call — Publish Form is then not needed."
               }
             },
             {
@@ -266,8 +266,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -280,7 +280,7 @@
                       "    pm.response.to.have.status(200);",
                       "});",
                       "",
-                      "console.log('Form ' + pm.collectionVariables.get('externalId') + ' published. It is now publicly accessible.');"
+                      "console.log('Form ' + pm.collectionVariables.get('formId') + ' published. It is now publicly accessible.');"
                     ]
                   }
                 }
@@ -288,14 +288,14 @@
               "request": {
                 "method": "POST",
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}/publish",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}/publish",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}",
+                    "{{formId}}",
                     "publish"
                   ]
                 },
@@ -310,8 +310,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -341,14 +341,14 @@
               "request": {
                 "method": "GET",
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}"
+                    "{{formId}}"
                   ]
                 },
                 "description": "Retrieves the full form definition including all sections, fields, status, and published URL (if active)."
@@ -362,8 +362,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "const externalId = pm.collectionVariables.get('externalId');",
-                      "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                      "const formId = pm.collectionVariables.get('formId');",
+                      "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                     ]
                   }
                 },
@@ -399,14 +399,14 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/v1/forms/{{externalId}}",
+                  "raw": "{{baseUrl}}/v1/forms/{{formId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "v1",
                     "forms",
-                    "{{externalId}}"
+                    "{{formId}}"
                   ],
                   "query": [
                     {
@@ -433,8 +433,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -486,14 +486,14 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/v2/forms/{{externalId}}/requests",
+              "raw": "{{baseUrl}}/v2/forms/{{formId}}/requests",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v2",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "requests"
               ]
             },
@@ -508,9 +508,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
+                  "const formId = pm.collectionVariables.get('formId');",
                   "const requestId = pm.collectionVariables.get('requestId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
                   "if (!requestId) { throw new Error('requestId is not set. Run Create Prefilled Form Request first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -532,14 +532,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/requests/{{requestId}}/answers",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/requests/{{requestId}}/answers",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "requests",
                 "{{requestId}}",
                 "answers"
@@ -573,7 +573,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -629,7 +629,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -685,7 +685,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -741,7 +741,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -797,7 +797,7 @@
                       "});",
                       "",
                       "if (json.formId) {",
-                      "    pm.collectionVariables.set('externalId', json.formId);",
+                      "    pm.collectionVariables.set('formId', json.formId);",
                       "    console.log('Form ID saved: ' + json.formId);",
                       "}"
                     ]
@@ -847,8 +847,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -861,7 +861,7 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "console.log('Form ' + pm.collectionVariables.get('externalId') + ' archived. It is no longer publicly accessible. Existing submissions are preserved.');"
+                  "console.log('Form ' + pm.collectionVariables.get('formId') + ' archived. It is no longer publicly accessible. Existing submissions are preserved.');"
                 ]
               }
             }
@@ -869,14 +869,14 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/archive",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/archive",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "archive"
               ]
             },
@@ -898,8 +898,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -938,14 +938,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions?limit=10&offset=0",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/submissions?limit=10&offset=0",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "submissions"
               ],
               "query": [
@@ -984,9 +984,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const externalId = pm.collectionVariables.get('externalId');",
+                  "const formId = pm.collectionVariables.get('formId');",
                   "const submissionId = pm.collectionVariables.get('submissionId');",
-                  "if (!externalId) { throw new Error('externalId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
                   "if (!submissionId) { throw new Error('submissionId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
               }
@@ -1008,14 +1008,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{externalId}}/submissions/{{submissionId}}/answers",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/submissions/{{submissionId}}/answers",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "forms",
-                "{{externalId}}",
+                "{{formId}}",
                 "submissions",
                 "{{submissionId}}",
                 "answers"
