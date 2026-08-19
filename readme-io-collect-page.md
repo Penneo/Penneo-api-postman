@@ -35,11 +35,11 @@ All other variables are set automatically as you run the requests in order.
 
 The collection is pre-configured for **sandbox**. When you are ready to test against production, update the following variables:
 
-| Variable | Production value |
-|----------|-----------------|
-| `baseUrl` | `https://app.penneo.com/collect/api` |
-| `authUrl` | `https://login.penneo.com` |
-| `signBaseUrl` | `https://app.penneo.com` |
+| Variable | Sandbox | Production |
+|----------|---------|------------|
+| `baseUrl` | `https://sandbox.penneo.com/collect/api` | `https://app.penneo.com/collect/api` |
+| `authUrl` | `https://login-sandbox.penneo.com` | `https://login.penneo.com` |
+| `signBaseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
 
 ## Requests
 

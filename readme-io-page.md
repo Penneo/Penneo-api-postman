@@ -33,10 +33,10 @@ After importing, open the collection in Postman and go to the **Variables** tab.
 
 The collection is pre-configured for **sandbox**. When you are ready to test against production, update the following variables:
 
-| Variable | Production value |
-|----------|-----------------|
-| `baseUrl` | `https://app.penneo.com` |
-| `authUrl` | `https://login.penneo.com` |
+| Variable | Sandbox | Production |
+|----------|---------|------------|
+| `baseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
+| `authUrl` | `https://login-sandbox.penneo.com` | `https://login.penneo.com` |
 
 ## Requests
 

@@ -12,7 +12,7 @@
     },
     {
       "key": "authUrl",
-      "value": "https://sandbox.oauth.penneo.cloud",
+      "value": "https://login-sandbox.penneo.com",
       "description": "Base URL for the Penneo OAuth server. Change to https://login.penneo.com for production."
     },
     {

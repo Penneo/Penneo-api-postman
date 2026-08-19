@@ -75,7 +75,7 @@ The `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the p
 | Variable | Sandbox | Production |
 |----------|---------|------------|
 | `baseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
-| `authUrl` | `https://sandbox.oauth.penneo.cloud` | `https://login.penneo.com` |
+| `authUrl` | `https://login-sandbox.penneo.com` | `https://login.penneo.com` |
 
 ---
 
