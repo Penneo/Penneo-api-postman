@@ -77,6 +77,8 @@ The `baseUrl` and `authUrl` are pre-configured for sandbox. Change them to the p
 | `baseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
 | `authUrl` | `https://login-sandbox.penneo.com` | `https://login.penneo.com` |
 
+> **Note:** In the **Penneo Collect API** collection, `baseUrl` includes the API path — `https://sandbox.penneo.com/collect/api` for sandbox and `https://app.penneo.com/collect/api` for production.
+
 ---
 
 ## Requests
