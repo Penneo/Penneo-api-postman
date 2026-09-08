@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Penneo Collect API",
-    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`formId` is saved automatically when you create a form. `casefileId` and `documentId` must be set manually — they come from a completed signing flow in the Penneo API collection.",
+    "description": "A collection for the Penneo Collect API — creating and managing forms, and retrieving submission data.\n\n**Setup**\nAdd the following variables before running:\n- `clientId` — your OAuth client ID\n- `clientSecret` — your OAuth client secret\n- `apiKey` — your Penneo API key\n- `apiSecret` — your Penneo API secret\n\nAll other variables are set automatically as you run the requests in order.\n\n**Flows**\n1. Run **1. Get Access Token** first — valid for 10 minutes, re-run if you get a 401.\n2. Run **Form Management** steps in order to create, publish, inspect, update, and archive a form.\n3. Use **Data Retrieval** steps to fetch submission data and documents once a form has been submitted and signed.\n\n`formId` is saved automatically when you create a form, and `submissionId`, `requestId`, and `casefileId` are saved automatically as you run the requests. Signed documents are downloaded straight from the Collect API — no detour through the Penneo Sign API is needed.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,11 +9,6 @@
       "key": "baseUrl",
       "value": "https://sandbox.penneo.com/collect/api",
       "description": "Base URL for the Penneo Collect API. Change to https://app.penneo.com/collect/api for production."
-    },
-    {
-      "key": "signBaseUrl",
-      "value": "https://sandbox.penneo.com",
-      "description": "Base URL for the Penneo Sign API (used for fetching signed documents). Change to https://app.penneo.com for production."
     },
     {
       "key": "authUrl",
@@ -78,17 +73,12 @@
     {
       "key": "casefileId",
       "value": "",
-      "description": "Auto-set by List Submissions from the first result. Can also be set manually."
+      "description": "Auto-set by List Submissions from the first result. Not used by any request in this collection — kept as a reference to the underlying Penneo Sign casefile, for use with the Penneo API or Webhooks collections."
     },
     {
       "key": "submissionId",
       "value": "",
       "description": "Auto-set by List Submissions from the first result. Can also be set manually."
-    },
-    {
-      "key": "documentId",
-      "value": "",
-      "description": "Set manually — the document ID from a completed casefile. Available from the Penneo API collection (step 4)."
     }
   ],
   "item": [
@@ -497,55 +487,7 @@
                 "requests"
               ]
             },
-            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\n**Body shape:** `answers` is keyed by section `slug`. Each value is a list of section instances (always a list, even for non multi-entry sections — pass a single-element list). Each instance maps field `name` to `{ editable, value }`.\n\nIn this example, `personal-details` is the slug of the section created by **Create Simple Form**, and `full_name` / `email_address` are field names within it. Update them if you use a different form structure.\n\nThe `requestUrl` and `requestId` are automatically saved. Share `requestUrl` with the end-user; `requestId` is used by **Get Request Answers** to fetch what they submitted."
-          }
-        },
-        {
-          "name": "Get Request Answers",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const formId = pm.collectionVariables.get('formId');",
-                  "const requestId = pm.collectionVariables.get('requestId');",
-                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
-                  "if (!requestId) { throw new Error('requestId is not set. Run Create Prefilled Form Request first, or set it manually in the Variables tab.'); }"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "console.log('Answers retrieved for request: ' + pm.collectionVariables.get('requestId'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/v1/forms/{{formId}}/requests/{{requestId}}/answers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "v1",
-                "forms",
-                "{{formId}}",
-                "requests",
-                "{{requestId}}",
-                "answers"
-              ]
-            },
-            "description": "Retrieves all form field answers submitted by the end-user for a specific prefilled request. Use this when you want to look up what was submitted via a request you created earlier — keyed by `requestId` rather than `submissionId`.\n\n**Requirements:** The form must be in `ACTIVE` or `ARCHIVED` status, and a submission must have been made against the request.\n\n**Response shape:** Same sectioned structure as **Get Submitted User Data** — top-level object with `submissionId`, `formId`, `version`, `respondents`, and a `sections` array. Each section has `title`, `multipleEntries`, and either `answers[]` (non multi-entry) or `instances[]` (multi-entry)."
+            "description": "Creates a prefilled form request — the form opens with the specified field values already populated. The end-user can still edit any field where `editable` is true.\n\n**Body shape:** `answers` is keyed by section `slug`. Each value is a list of section instances (always a list, even for non multi-entry sections — pass a single-element list). Each instance maps field `name` to `{ editable, value }`.\n\nIn this example, `personal-details` is the slug of the section created by **Create Simple Form**, and `full_name` / `email_address` are field names within it. Update them if you use a different form structure.\n\nThe `requestUrl` and `requestId` are automatically saved. Share `requestUrl` with the end-user; `requestId` is used by **Get Request Answers** and **Get Signed Document by requestId** (both in the Data Retrieval folder) to fetch what they submitted."
           }
         }
           ]
@@ -1025,15 +967,17 @@
           }
         },
         {
-          "name": "List Files for Casefile",
+          "name": "Get Request Answers",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const casefileId = pm.collectionVariables.get('casefileId');",
-                  "if (!casefileId) { throw new Error('casefileId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "const requestId = pm.collectionVariables.get('requestId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!requestId) { throw new Error('requestId is not set. Run Create Prefilled Form Request first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -1046,13 +990,7 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "const json = pm.response.json();",
-                  "if (Array.isArray(json)) {",
-                  "    console.log('Files attached to casefile: ' + json.length);",
-                  "    json.forEach(function(f, i) {",
-                  "        console.log('[' + i + '] ' + f.filename + ' (' + f.size + ' bytes)');",
-                  "    });",
-                  "}"
+                  "console.log('Answers retrieved for request: ' + pm.collectionVariables.get('requestId'));"
                 ]
               }
             }
@@ -1060,30 +998,34 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/v1/casefiles/{{casefileId}}/files",
+              "raw": "{{baseUrl}}/v2/forms/{{formId}}/requests/{{requestId}}/answers",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "v1",
-                "casefiles",
-                "{{casefileId}}",
-                "files"
+                "v2",
+                "forms",
+                "{{formId}}",
+                "requests",
+                "{{requestId}}",
+                "answers"
               ]
             },
-            "description": "Lists all files (e.g. uploaded attachments from FILE fields) attached to a specific casefile, including filename, size, and download link.\n\n**Requires `casefileId`** — set it manually in the collection Variables tab."
+            "description": "Retrieves all form field answers submitted by the end-user for a specific prefilled request. Use this when you want to look up what was submitted via a request you created earlier — keyed by `requestId` rather than `submissionId`.\n\nThis endpoint is on **v2**, consistent with the other request-scoped endpoints.\n\n**Requirements:** The form must be in `ACTIVE` or `ARCHIVED` status, and a submission must have been made against the request.\n\n**Response shape:** Same sectioned structure as **Get Submitted User Data** — top-level object with `submissionId`, `formId`, `version`, `respondents`, and a `sections` array. Each section has `title`, `multipleEntries`, and either `answers[]` (non multi-entry) or `instances[]` (multi-entry)."
           }
         },
         {
-          "name": "Get Casefile Details",
+          "name": "Get Signed Document by submissionId",
           "event": [
             {
               "listen": "prerequest",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const casefileId = pm.collectionVariables.get('casefileId');",
-                  "if (!casefileId) { throw new Error('casefileId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "const submissionId = pm.collectionVariables.get('submissionId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!submissionId) { throw new Error('submissionId is not set. Run List Submissions first, or set it manually in the Variables tab.'); }"
                 ]
               }
             },
@@ -1092,66 +1034,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "const json = pm.response.json();",
+                  "if (pm.response.code === 404) {",
+                  "    console.log('404 Not Found — no signed document for this submission yet. The document becomes available only once signing has finished.');",
+                  "}",
                   "",
-                  "pm.test('Status code is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains documents', function () {",
-                  "    pm.expect(json).to.have.property('documents').that.is.an('array');",
-                  "});",
-                  "",
-                  "if (json.documents && json.documents.length > 0) {",
-                  "    const ids = json.documents.map(function(d) { return d.id; });",
-                  "    pm.collectionVariables.set('documentId', ids[0]);",
-                  "    if (ids.length === 1) {",
-                  "        console.log('Document ID saved: ' + ids[0]);",
-                  "    } else {",
-                  "        console.log('Multiple documents found (' + ids.length + '). documentId set to first: ' + ids[0] + '. Update manually for others.');",
-                  "    }",
-                  "} else {",
-                  "    console.warn('No documents found in casefile — signing may not be complete yet.');",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{signBaseUrl}}/api/v1/casefiles/{{casefileId}}",
-              "host": [
-                "{{signBaseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "casefiles",
-                "{{casefileId}}"
-              ]
-            },
-            "description": "Retrieves the full casefile details from the Penneo Sign API, including status, signers, and documents.\n\nAutomatically saves `documentId` from the first document in the response — used by Get Signed Document.\n\nUses `signBaseUrl` (https://sandbox.penneo.com) rather than the Collect API base URL."
-          }
-        },
-        {
-          "name": "Get Signed Document",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const documentId = pm.collectionVariables.get('documentId');",
-                  "if (!documentId) { throw new Error('documentId is not set. Run Get Casefile Details first, or set it manually in the Variables tab.'); }"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
                   "pm.test('Status code is 200', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
@@ -1160,7 +1046,12 @@
                   "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
                   "});",
                   "",
-                  "console.log('Signed document downloaded. Size: ' + pm.response.responseSize + ' bytes.');"
+                  "if (pm.response.code === 200) {",
+                  "    const disposition = pm.response.headers.get('Content-Disposition');",
+                  "    if (disposition) { console.log('Content-Disposition: ' + disposition); }",
+                  "    console.log('Signed document retrieved. Size: ' + pm.response.responseSize + ' bytes.');",
+                  "    console.log('Use Send and Download in Postman to save the PDF locally.');",
+                  "}"
                 ]
               }
             }
@@ -1174,19 +1065,87 @@
               }
             ],
             "url": {
-              "raw": "{{signBaseUrl}}/api/v3/documents/{{documentId}}/content",
+              "raw": "{{baseUrl}}/v1/forms/{{formId}}/submissions/{{submissionId}}/signed-document",
               "host": [
-                "{{signBaseUrl}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "api",
-                "v3",
-                "documents",
-                "{{documentId}}",
-                "content"
+                "v1",
+                "forms",
+                "{{formId}}",
+                "submissions",
+                "{{submissionId}}",
+                "signed-document"
               ]
             },
-            "description": "Downloads the signed PDF document. Set the response type to 'Send and Download' in Postman to save the file locally.\n\nThis uses `signBaseUrl` (https://sandbox.penneo.com) rather than the Collect API base URL, as it calls the Penneo Sign API — the same endpoint as in the Penneo API collection.\n\n**Requires `documentId`** — set it manually in the collection Variables tab. The document ID is available from step 4 of the Penneo API collection.\n\nTo download as JSON instead of PDF, change the `Accept` header to `application/json`."
+            "description": "Downloads the signed PDF for a specific submission. The response is streamed as `application/pdf` with a `Content-Disposition` attachment filename.\n\nIn Postman, use **Send and Download** (the arrow next to the Send button) to save the file locally.\n\n**Requires `formId` and `submissionId`** — both are saved automatically by List Submissions.\n\n**Availability:** the signed document exists only after signing has finished. Until then this endpoint returns `404 Not Found`."
+          }
+        },
+        {
+          "name": "Get Signed Document by requestId",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const formId = pm.collectionVariables.get('formId');",
+                  "const requestId = pm.collectionVariables.get('requestId');",
+                  "if (!formId) { throw new Error('formId is not set. Run Create Form first, or set it manually in the Variables tab.'); }",
+                  "if (!requestId) { throw new Error('requestId is not set. Run Create Prefilled Form Request first, or set it manually in the Variables tab.'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 404) {",
+                  "    console.log('404 Not Found — no signed document for this request yet. The document becomes available only once signing has finished.');",
+                  "}",
+                  "",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is a PDF', function () {",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const disposition = pm.response.headers.get('Content-Disposition');",
+                  "    if (disposition) { console.log('Content-Disposition: ' + disposition); }",
+                  "    console.log('Signed document retrieved. Size: ' + pm.response.responseSize + ' bytes.');",
+                  "    console.log('Use Send and Download in Postman to save the PDF locally.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/pdf"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v2/forms/{{formId}}/requests/{{requestId}}/signed-document",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v2",
+                "forms",
+                "{{formId}}",
+                "requests",
+                "{{requestId}}",
+                "signed-document"
+              ]
+            },
+            "description": "Downloads the signed PDF for a specific prefilled form request. The response is streamed as `application/pdf` with a `Content-Disposition` attachment filename.\n\nIn Postman, use **Send and Download** (the arrow next to the Send button) to save the file locally.\n\n**Requires `formId` and `requestId`** — `requestId` is saved automatically by Create Prefilled Form Request.\n\nThis endpoint is on **v2**, consistent with Create Prefilled Form Request.\n\n**Availability:** the signed document exists only after the recipient has completed signing. Until then this endpoint returns `404 Not Found`."
           }
         }
       ]

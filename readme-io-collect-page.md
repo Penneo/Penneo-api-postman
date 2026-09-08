@@ -39,7 +39,6 @@ The collection is pre-configured for **sandbox**. When you are ready to test aga
 |----------|---------|------------|
 | `baseUrl` | `https://sandbox.penneo.com/collect/api` | `https://app.penneo.com/collect/api` |
 | `authUrl` | `https://login-sandbox.penneo.com` | `https://login.penneo.com` |
-| `signBaseUrl` | `https://sandbox.penneo.com` | `https://app.penneo.com` |
 
 ## Requests
 
@@ -57,37 +56,37 @@ Run these in order to take a form through its full lifecycle.
 
 **`Create Simple Form`** `POST /v1/forms`
 
-Creates a new form in DRAFT status. The form is not publicly accessible until it is published. The `externalId` is saved automatically and used by all subsequent requests in this folder.
+Creates a new form in DRAFT status. The form is not publicly accessible until it is published. The `formId` is saved automatically and used by all subsequent requests in this folder.
 
 The example body includes a single section with four fields: Full Name (TEXT), Email Address (EMAIL), Phone Number (PHONE), and Additional Comments (TEXT). Modify the body to match your own form structure. Each field must have a `name` property — this is the key used when creating prefilled form requests.
 
-> Saves: `externalId`
+> Saves: `formId`
 
-**`Publish Form`** `POST /v1/forms/{{externalId}}/publish`
+**`Publish Form`** `POST /v1/forms/{{formId}}/publish`
 
 Publishes the form, changing its status from DRAFT to ACTIVE. End-users can now access and submit it via its public URL.
 
-> Requires: `externalId`
+> Requires: `formId`
 
-**`Get Form`** `GET /v1/forms/{{externalId}}`
+**`Get Form`** `GET /v1/forms/{{formId}}`
 
 Retrieves the full form definition including all sections, fields, current status, and public URL (if active). Useful for inspecting the form after creating or updating it.
 
-> Requires: `externalId`
+> Requires: `formId`
 
-**`Update Form`** `PUT /v1/forms/{{externalId}}`
+**`Update Form`** `PUT /v1/forms/{{formId}}`
 
-Updates the form with a new set of sections and fields. If the form is currently ACTIVE, a new DRAFT version is created under the same `externalId` — **run Publish Form again to make the changes live**.
+Updates the form with a new set of sections and fields. If the form is currently ACTIVE, a new DRAFT version is created under the same `formId` — **run Publish Form again to make the changes live**.
 
 The example body adds a Company Name field to the original form structure.
 
-> Requires: `externalId`
+> Requires: `formId`
 
 ---
 
 ### Prefilled Form Request
 
-**`Create Prefilled Form Request`** `POST /v1/forms/{{externalId}}/requests`
+**`Create Prefilled Form Request`** `POST /v2/forms/{{formId}}/requests`
 
 Generates a personalised form link with specific fields pre-populated. The end-user opens the link and sees the form with the provided values already filled in. Fields with `"editable": true` can be changed by the user; fields with `"editable": false` are locked.
 
@@ -95,18 +94,18 @@ The answer keys in the request body must match the `name` properties of the fiel
 
 The public URL is saved to `requestUrl` automatically. Share it with the end-user.
 
-> Requires: `externalId`  
-> Saves: `requestUrl`
+> Requires: `formId`  
+> Saves: `requestUrl`, `requestId`
 
 ---
 
 ### Deactivate Form
 
-**`Deactivate Form`** `POST /v1/forms/{{externalId}}/archive`
+**`Deactivate Form`** `POST /v1/forms/{{formId}}/archive`
 
 Takes the form offline by changing its status from ACTIVE to ARCHIVED. The public URL becomes inactive and no new submissions are accepted. Existing submissions are preserved and remain retrievable via the Data Retrieval requests.
 
-> Requires: `externalId`
+> Requires: `formId`
 
 ---
 
@@ -122,25 +121,25 @@ Creates a form demonstrating two types of conditional visibility:
 
 Conditions use an `EQUALS` rule referencing the `name` of an earlier field.
 
-> Saves: `externalId`
+> Saves: `formId`
 
 **`Set Casefile Name`** `POST /v1/forms`
 
 Creates a form with a `caseFileTitleTemplate` that controls how the resulting casefile is named in Penneo Sign. The template uses merge fields resolved at submission time: `{{formName}}`, `{{primarySigner.name}}`, and `{{primarySigner.email}}`.
 
-> Saves: `externalId`
+> Saves: `formId`
 
 **`Merge Fields in HTML Content`** `POST /v1/forms`
 
 Creates a loan application form demonstrating merge fields in HTML content. Answers collected in earlier sections are injected into a final summary section using `{{fieldName}}` syntax, so the applicant can review their input before signing. The merge field key matches the `name` property of the source field.
 
-> Saves: `externalId`
+> Saves: `formId`
 
 **`Map Fields to Signer`** `POST /v1/forms`
 
 Creates a form demonstrating the `mapTo` property. Fields mapped to `primarySigner.name` and `primarySigner.email` automatically identify the form filler as the primary signer — no separate signer configuration required. The field mapped to any `*.email` property must be of type `EMAIL`.
 
-> Saves: `externalId`
+> Saves: `formId`
 
 ---
 
@@ -148,47 +147,52 @@ Creates a form demonstrating the `mapTo` property. Fields mapped to `primarySign
 
 Run these in order once end-users have submitted and signed the form.
 
-**`List Submissions`** `GET /v1/forms/{{externalId}}/submissions`
+**`List Submissions`** `GET /v1/forms/{{formId}}/submissions`
 
 Returns all completed submissions for the given form, ordered by submission ID ascending. The `submissionId` and `casefileId` from the first result are saved automatically.
 
-If there are multiple submissions, update `submissionId` and `casefileId` manually in the Variables tab to work with a specific one.
+If there are multiple submissions, update `submissionId` manually in the Variables tab to work with a specific one.
 
 Supports pagination via `limit` (default 10, max 1000) and `offset` query parameters.
 
-> Requires: `externalId`  
+> Requires: `formId`  
 > Saves: `submissionId`, `casefileId`
 
-**`Get Submitted User Data`** `GET /v1/forms/{{externalId}}/submissions/{{submissionId}}/answers`
+**`Get Submitted User Data`** `GET /v1/forms/{{formId}}/submissions/{{submissionId}}/answers`
 
 Retrieves all field answers submitted by the end-user for a specific submission.
 
-> Requires: `externalId`, `submissionId`
+> Requires: `formId`, `submissionId`
 
-**`List Files for Casefile`** `GET /v1/casefiles/{{casefileId}}/files`
+**`Get Request Answers`** `GET /v2/forms/{{formId}}/requests/{{requestId}}/answers`
 
-Lists all file attachments (uploaded via FILE fields) linked to a casefile, including filename, size, and download link.
+Retrieves all field answers submitted against a specific prefilled form request — keyed on `requestId` instead of `submissionId`. Use it when you started from a prefilled form request and want the answers without looking up the submission first.
 
-> Requires: `casefileId`
+The response has the same sectioned shape as `Get Submitted User Data`.
 
-**`Get Casefile Details`** `GET /api/v1/casefiles/{{casefileId}}`
+The form must be in `ACTIVE` or `ARCHIVED` status, and a submission must have been made against the request.
 
-Retrieves full casefile details from the Penneo Sign API — including signing status, signers, and documents. The `documentId` from the first document is saved automatically for use in the next request.
+Note this endpoint is on **v2**, consistent with the other request-scoped endpoints.
 
-This request uses `signBaseUrl` rather than the Collect API base URL, as it calls the Penneo Sign API.
+> Requires: `formId`, `requestId`
 
-> Requires: `casefileId`  
-> Saves: `documentId`
+**`Get Signed Document by submissionId`** `GET /v1/forms/{{formId}}/submissions/{{submissionId}}/signed-document`
 
-**`Get Signed Document`** `GET /api/v3/documents/{{documentId}}/content`
+Downloads the signed PDF for a submission. The response is streamed as `application/pdf` with a `Content-Disposition` attachment filename.
 
-Downloads the signed PDF. In Postman, set the response type to **Send and Download** to save the file locally.
+In Postman, use **Send and Download** (the arrow next to the Send button) to save the file locally.
 
-To download a JSON representation instead, change the `Accept` header from `application/pdf` to `application/json`.
+> Requires: `formId`, `submissionId`
 
-This request also uses `signBaseUrl`.
+**`Get Signed Document by requestId`** `GET /v2/forms/{{formId}}/requests/{{requestId}}/signed-document`
 
-> Requires: `documentId`
+Downloads the signed PDF for a prefilled form request. Identical in behaviour to the endpoint above, but keyed on `requestId` instead of `submissionId` — use it when you started from a prefilled form request and want the document without looking up the submission first.
+
+Note this endpoint is on **v2**, consistent with Create Prefilled Form Request.
+
+> Requires: `formId`, `requestId`
+
+**Availability:** the signed document exists only once signing has finished. Until then both endpoints return `404 Not Found`.
 
 ---
 
@@ -201,8 +205,8 @@ This request also uses `signBaseUrl`.
 | `apiKey` | You | Penneo API key |
 | `apiSecret` | You | Penneo API secret |
 | `accessToken` | Get Access Token | Bearer token for all authenticated requests |
-| `externalId` | Create Form | Identifies the form across all requests |
+| `formId` | Create Form | Identifies the form across all requests |
 | `requestUrl` | Create Prefilled Form Request | Public URL to share with the end-user |
+| `requestId` | Create Prefilled Form Request | Identifies a specific prefilled form request |
 | `submissionId` | List Submissions | Identifies a specific submission |
-| `casefileId` | List Submissions | Links the submission to a Penneo Sign casefile |
-| `documentId` | Get Casefile Details | Identifies a signed document for download |
+| `casefileId` | List Submissions | Links the submission to the underlying Penneo Sign casefile. Not used by any request in this collection |
